@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-COPY ./app/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 FROM python:3.13-slim AS runtime
@@ -27,7 +27,7 @@ RUN mkdir -p /usr/libexec/docker/cli-plugins && \
     chmod +x /usr/libexec/docker/cli-plugins/docker-compose
 
 COPY --from=builder /opt/venv /opt/venv
-COPY ./app /app
+COPY . .
 
 EXPOSE 5000
 CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--worker-class", "gthread", \
