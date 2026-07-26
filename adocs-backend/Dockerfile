@@ -1,3 +1,4 @@
+# --- Stage 1: Builder ---
 FROM python:3.13-slim AS builder
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
@@ -12,14 +13,17 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# --- Stage 2: Runtime ---
 FROM python:3.13-slim AS runtime
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 ENV PATH="/opt/venv/bin:$PATH"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libmariadb3 curl docker.io \
+    libmariadb3 curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+COPY --from=docker:cli /usr/local/bin/docker /usr/local/bin/
 
 RUN mkdir -p /usr/libexec/docker/cli-plugins && \
     curl -SL https://github.com/docker/compose/releases/download/v2.24.6/docker-compose-linux-x86_64 \
