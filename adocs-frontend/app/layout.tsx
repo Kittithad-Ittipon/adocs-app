@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KI",
-  description: "KI Sugar Test",
+  title: "ADOCS",
+  description: "ADOCS DEPLOYMENT",
 };
 
 export default function RootLayout({
