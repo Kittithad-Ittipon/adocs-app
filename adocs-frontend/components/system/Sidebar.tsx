@@ -8,6 +8,7 @@ import {
   Users,
   UserCircle,
   FileText,
+  Box,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
@@ -20,6 +21,7 @@ const menuItems = [
   { title: "ADOCS", icon: Rocket, href: "/" },
   { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { title: "Upload", icon: Upload, href: "/upload" },
+  { title: "Containers", icon: Box, href: "/containers" },
   { title: "Users Manage", icon: Users, href: "/users-manage" },
   { title: "Profile", icon: UserCircle, href: "/profile" },
   { title: "Logs", icon: FileText, href: "/logs" },

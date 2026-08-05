@@ -41,7 +41,8 @@ export async function proxy(request: NextRequest) {
       path.startsWith("/logs") ||
       path.startsWith("/upload") ||
       path.startsWith("/profile") ||
-      path.startsWith("/users-manage")
+      path.startsWith("/users-manage") ||
+      path.startsWith("/containers")
     ) {
       if (role !== "admin") {
         return NextResponse.redirect(new URL("/login", request.url));
@@ -78,6 +79,7 @@ export const config = {
     "/profile",
     "/upload",
     "/users-manage",
+    "/containers",
     "/users/:path*",
     "/login",
     "/forgot",
