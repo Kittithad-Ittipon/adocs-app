@@ -61,6 +61,10 @@ export const uploadsSchema = z.object({
       message:
         "Domain contains invalid character sequences (like '--' or '..').",
     })
+    .refine((domain) => !domain.includes("."), {
+      message:
+        "Domain must contain only one name without dots (.) Example 'project-app'.",
+    })
     .refine((domain) => domain !== "addp.site", {
       message: "Domain name 'addp.site' is not allowed.",
     })
