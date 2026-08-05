@@ -42,7 +42,7 @@ export async function proxy(request: NextRequest) {
       path.startsWith("/upload") ||
       path.startsWith("/profile") ||
       path.startsWith("/users-manage") ||
-      path.startsWith("/containers")
+      path.startsWith("/container-manage")
     ) {
       if (role !== "admin") {
         return NextResponse.redirect(new URL("/login", request.url));
@@ -79,7 +79,7 @@ export const config = {
     "/profile",
     "/upload",
     "/users-manage",
-    "/containers",
+    "/container-manage",
     "/users/:path*",
     "/login",
     "/forgot",

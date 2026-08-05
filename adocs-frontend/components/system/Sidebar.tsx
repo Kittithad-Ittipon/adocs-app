@@ -21,7 +21,7 @@ const menuItems = [
   { title: "ADOCS", icon: Rocket, href: "/" },
   { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { title: "Upload", icon: Upload, href: "/upload" },
-  { title: "Containers", icon: Box, href: "/containers" },
+  { title: "Containers", icon: Box, href: "/container-manage" },
   { title: "Users Manage", icon: Users, href: "/users-manage" },
   { title: "Profile", icon: UserCircle, href: "/profile" },
   { title: "Logs", icon: FileText, href: "/logs" },
