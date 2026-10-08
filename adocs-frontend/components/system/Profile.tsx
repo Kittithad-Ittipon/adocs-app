@@ -1,48 +1,18 @@
 "use client";
-
-import { BsDatabaseCheck, BsDatabaseExclamation } from "react-icons/bs";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "../ui/breadcrumb";
-import { Input } from "../ui/input";
-import { Field, FieldLabel } from "../ui/field";
-import { Button } from "../ui/button";
-import { useEffect, useState } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogMedia,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "../ui/alert-dialog";
-import {
-  CircleQuestionMark,
-  Mail,
-  Server,
-  ShieldUser,
-  Trash2Icon,
-  TriangleAlert,
-} from "lucide-react";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "../ui/hover-card";
-import { Progress } from "../ui/progress";
-import { MdOutlineAdminPanelSettings } from "react-icons/md";
-import { toast } from "sonner";
+import LoadingSection from "@/components/feedback/LoadingSection";
+import { useLoadingTasks } from "@/components/feedback/useLoadingTasks";
+import RecordStatus from "@/components/system/shared/RecordStatus";
+import SystemPageHeader from "@/components/system/shared/SystemPageHeader";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { ArrowUpRight, Box, Database, KeyRound, Mail, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-
+import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 type usersData = {
   username: string;
   email: string;
@@ -54,6 +24,7 @@ type usersData = {
 };
 
 const ComponentProfile = () => {
+  const { loading, run } = useLoadingTasks(["fetchProfileData"]);
   const [allData, setAllData] = useState<usersData>({
     username: "Loading...",
     email: "Loading...",
@@ -78,14 +49,14 @@ const ComponentProfile = () => {
         }
         const data = await res.json();
         setAllData(data);
-      } catch (error) {
+      } catch {
         toast.error("Error Fetch Data", {
           description: "Server error 500",
         });
       }
     };
-    fetchProfileData();
-  }, []);
+    void run("fetchProfileData", fetchProfileData);
+  }, [run]);
   const toRePasswordProfile = async (
     e: React.SyntheticEvent<HTMLFormElement>,
   ) => {
@@ -111,7 +82,7 @@ const ComponentProfile = () => {
       });
       setPassword("");
       setNewPassword("");
-    } catch (error) {
+    } catch {
       toast.dismiss(toastID);
       toast.error("Error", { description: "Server Error 500" });
     }
@@ -137,12 +108,12 @@ const ComponentProfile = () => {
         id: toastID,
         description: data.message,
       });
-    } catch (error) {
+    } catch {
       toast.dismiss(toastID);
       toast.error("Error", { description: "Server Error 500" });
     }
   };
-  const toDeleteUser = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const toDeleteUser = async () => {
     const toastID = toast.loading("Loading...");
     const username = allData.username;
     try {
@@ -164,373 +135,57 @@ const ComponentProfile = () => {
       });
       rounter.refresh();
       rounter.replace("/login");
-    } catch (error) {
+    } catch {
       toast.dismiss(toastID);
       toast.error("Error", { description: "Server Error 500" });
     }
   };
+  const used = Math.max(0, Number(allData.container) || 0);
+  const limit = Math.max(0, Number(allData.maxContainers) || 0);
+  const capacity = limit > 0 ? Math.min(100, Math.round(used / limit * 100)) : 0;
   return (
-    <div className="max-w-screen min-h-full flex items-center justify-start flex-col">
-      <Breadcrumb className="h-full w-full justify-center items-center mt-10 md:mt-2 md:px-9 md:py-5">
-        <BreadcrumbList className="w-full h-full text-md xl:text-lg font-[600] justify-center mb-4 sm:mb-0 md:justify-start items-center">
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/" className="text-gray-400">
-              Home
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage className="font-[600]">Profile</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-      <div className="min-w-screen xl:min-w-0 xl:max-w-screen min-h-[700px]">
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 w-full p-4 md:px-8 h-full">
-          <div className="grid grid-cols-1 w-full gap-4">
-            <div className="border rounded-xl gap-6 p-6 flex flex-col lg:flex-row transition-all min-h-[250px]">
-              <div className="flex justify-center mb-5 md:mb-0 items-center md:justify-start">
-                <div className="h-35 w-35 md:h-35 md:w-35 rounded-full flex items-center justify-center text-5xl font-[700] text-white bg-sky-400 dark:bg-cyan-500">
-                  {allData.username?.substring(0, 2).toUpperCase() || "AD"}
-                </div>
-              </div>
-              <div className="flex flex-col gap-3 justify-center items-start w-full h-full">
-                <div className="flex items-center gap-3 text-slate-800 dark:text-slate-200">
-                  <ShieldUser className="text-sky-500 dark:text-cyan-300 w-6 h-6" />
-                  <p className="font-semibold text-lg max-w-[250px] truncate">
-                    {allData.username}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 text-slate-600 dark:text-white">
-                  <Mail className="text-sky-500 dark:text-cyan-300 w-5 h-5 ml-0.5" />
-                  <p className="font-medium text-md max-w-[250px] truncate">
-                    {allData.email}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 text-slate-600 dark:text-white">
-                  <MdOutlineAdminPanelSettings className="text-sky-500 dark:text-cyan-300 w-6 h-6 ml-0.5" />
-                  <p className="font-medium text-md max-w-[250px] truncate">
-                    {allData.role}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="border rounded-xl p-6 transition-all min-h-[450px]">
-              <div className="flex items-center gap-3 mb-6 border-b border-slate-100 dark:border-zinc-800 pb-4">
-                <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-200">
-                  Change Password
-                </h3>
-                <HoverCard openDelay={10} closeDelay={200}>
-                  <HoverCardTrigger asChild>
-                    <span className="bg-transparent text-black dark:text-white flex justify-center items-center rounded-lg transition duration-200">
-                      <CircleQuestionMark className="w-5 h-5" />
-                    </span>
-                  </HoverCardTrigger>
-                  <HoverCardContent
-                    className="flex w-75 flex-col gap-3"
-                    side="right"
-                  >
-                    <div className="w-full flex flex-col gap-2">
-                      <div className="font-[600] text-md">
-                        Password Synchronization Notice
-                      </div>
-                      <div className="text-sm font-[300]">
-                        Please note that updating your account password here
-                        will automatically sync and update the credentials for
-                        your connected database account.
-                      </div>
-                    </div>
-                  </HoverCardContent>
-                </HoverCard>
-              </div>
-              <form
-                action="#"
-                className="flex flex-col gap-5"
-                onSubmit={toRePasswordProfile}
-              >
-                <Field>
-                  <FieldLabel htmlFor="new-password">Password</FieldLabel>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    className="h-12 shadow-none"
-                    placeholder="Enter password"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                    }}
-                    autoComplete="off"
-                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                      if (e.key === " ") {
-                        e.preventDefault();
-                      }
-                    }}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="confirm-password">
-                    New Password
-                  </FieldLabel>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    className="h-12 shadow-none"
-                    placeholder="Enter New password"
-                    value={newPassword}
-                    onChange={(e) => {
-                      setNewPassword(e.target.value);
-                    }}
-                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                      if (e.key === " ") {
-                        e.preventDefault();
-                      }
-                    }}
-                  />
-                </Field>
-                <div className="w-full mt-6 flex justify-start xl:justify-center items-center">
-                  <Button className="flex items-center w-full xl:w-1/1 shadow-none h-12 rounded-xl bg-black dark:bg-white dark:hover:bg-gray-200 text-white dark:text-black font-[600] text-sm transition-all cursor-pointer">
-                    Update Password
-                  </Button>
-                </div>
+    <LoadingSection loading={loading} layout="profile">
+      <div className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6 lg:p-8">
+        <SystemPageHeader title="Profile" description="Your account, security and resources." />
+        <Card className="gap-0 overflow-hidden rounded-2xl shadow-none">
+          <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-teal-500 text-xl font-semibold text-white">{allData.username?.slice(0, 2).toUpperCase() || "AD"}</span>
+            <div className="min-w-0 flex-1 space-y-2"><h2 className="break-all text-2xl font-semibold tracking-tight">{allData.username}</h2><p className="flex items-start gap-2 text-sm text-muted-foreground"><Mail className="mt-0.5 size-4 shrink-0" /><span className="break-all">{allData.email}</span></p></div>
+            <RecordStatus status={allData.role} tone="neutral" />
+          </CardContent>
+        </Card>
+        <div className="grid items-stretch gap-5 lg:grid-cols-2">
+          <Card className="rounded-2xl shadow-none">
+            <CardHeader><CardTitle className="flex items-center gap-2 text-base"><KeyRound className="size-4 text-sky-500" />Password & security</CardTitle><CardDescription className="text-xs">Changing your password also updates your connected database credentials.</CardDescription></CardHeader>
+            <CardContent>
+              <form onSubmit={toRePasswordProfile} className="space-y-5">
+                <Field><FieldLabel htmlFor="current-password">Current password</FieldLabel><Input id="current-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-10" required /></Field>
+                <Field><FieldLabel htmlFor="new-password">New password</FieldLabel><Input id="new-password" type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="h-10" required /><FieldDescription className="text-xs">Choose a strong password for your account.</FieldDescription></Field>
+                <div className="flex justify-end"><Button type="submit"><KeyRound />Update password</Button></div>
               </form>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 w-full gap-4">
-            <div className="border rounded-xl p-6 transition-all min-h-[400px] flex flex-col">
-              <div className="flex items-center gap-3 mb-6 pb-4">
-                <Server className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-200">
-                  Resource Usage
-                </h3>
-              </div>
-              <div className="flex flex-col items-center justify-center flex-1 w-full gap-8">
-                <div className="flex flex-col items-center justify-center w-40 h-40 rounded-full border-[12px] border-sky-50 dark:border-cyan-900/20 transition-all">
-                  <span className="text-4xl xl:text-5xl font-bold text-sky-500 dark:text-cyan-300 tracking-tighter">
-                    {Math.round(
-                      (parseInt(allData.container) /
-                        parseInt(allData.maxContainers)) *
-                        100,
-                    )}
-                    %
-                  </span>
-                  <span className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2">
-                    Capacity Used
-                  </span>
-                </div>
-                <Field className="w-full max-w-sm">
-                  <FieldLabel
-                    htmlFor="progress-container"
-                    className="flex items-center w-full mb-3"
-                  >
-                    <span className="text-sm font-medium">
-                      Containers Allocated
-                    </span>
-                    <span className="ml-auto font-bold px-3 py-1 rounded-full text-xs">
-                      {allData.container} / {allData.maxContainers}
-                    </span>
-                  </FieldLabel>
-                  <Progress
-                    value={Math.round(
-                      (parseInt(allData.container) /
-                        parseInt(allData.maxContainers)) *
-                        100,
-                    )}
-                    id="progress-container"
-                    className="h-3"
-                  />
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-4 text-center leading-relaxed">
-                    You are currently using <strong>{allData.container}</strong>{" "}
-                    containers and can create{" "}
-                    <strong>
-                      {parseInt(allData.maxContainers) -
-                        parseInt(allData.container)}
-                    </strong>{" "}
-                    more.
-                  </p>
-                </Field>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 min-h-[250px]">
-              <div className="border rounded-xl p-6 transition-all flex flex-col justify-center items-center">
-                {allData.db ? (
-                  <div className="flex flex-col items-center justify-between h-full gap-4 w-full">
-                    <div className="flex flex-col items-center">
-                      <div className="p-3  bg-green-100 dark:bg-green-900/30 rounded-full">
-                        <BsDatabaseCheck className="w-8 h-8 text-green-600 dark:text-green-500" />
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <h3 className="font-semibold text-lg mb-2">
-                        Database Connected
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        Your account is successfully synced. <br /> <br />
-                      </p>
-                    </div>
-                    <div className="w-full flex justify-center items-center">
-                      <Button
-                        onClick={() => {
-                          toast.info("Database account already exists", {
-                            description: "You already have a database account.",
-                          });
-                        }}
-                        className="cursor-pointer mt-2 rounded-lg shadow-none font-[500] bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-500 dark:text-white dark:hover:bg-green-600 w-full md:w-1/2 xl:w-full"
-                      >
-                        Request Database Account
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-between h-full gap-4 w-full">
-                    <div className="flex flex-col items-center">
-                      <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-                        <BsDatabaseExclamation className="w-8 h-8 text-amber-600 dark:text-amber-500" />
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <h3 className="font-semibold text-lg mb-2">
-                        No Database Account
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        You don't have a connected database yet. <br /> <br />
-                      </p>
-                    </div>
-                    <div className="w-full flex justify-center items-center">
-                      <Button
-                        onClick={toRequestDatabase}
-                        className="cursor-pointer mt-2 rounded-lg shadow-none font-[500] bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-500 dark:text-white dark:hover:bg-amber-600 w-full md:w-1/2 xl:w-full"
-                      >
-                        Request Database Account
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="border border-red-200 dark:border-red-900/50 rounded-xl p-6 transition-all flex flex-col items-center justify-between gap-4 w-full">
-                <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
-                  <TriangleAlert className="w-8 h-8 text-red-600 dark:text-red-500" />
-                </div>
-                <div className="font-[700] text-lg text-red-600 w-full flex justify-center items-center flex-col mb-5 md:mb-0">
-                  <p className="mb-2">Delete Account</p>
-                  <div className="font-[400] text-sm text-gray-500">
-                    Permanently remove your account and all of its contents from
-                    the platform. This action is not reversible.
-                  </div>
-                </div>
-                <div className="w-full flex justify-center items-center">
-                  {allData.role === "admin" ? (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="destructive"
-                          className="cursor-pointer w-full shadow-none font-[500] dark:bg-red-500 dark:hover:bg-red-700 dark:text-white md:w-1/2 xl:w-full"
-                        >
-                          Delete Account
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent size="sm" className="!max-w-[500px]">
-                        <AlertDialogHeader>
-                          <AlertDialogMedia className="dark:bg-red-500 bg-red-100 text-red-600 dark:text-white">
-                            <Trash2Icon />
-                          </AlertDialogMedia>
-                          <AlertDialogTitle className="font-[700]">
-                            Action Denied
-                          </AlertDialogTitle>
-                          <AlertDialogDescription className="flex flex-col gap-3 text-left mt-2">
-                            <span>
-                              This action cannot be undone. Your account will be
-                              permanently deleted.
-                            </span>
-                            <span className="p-3 bg-red-50 dark:bg-red-500 rounded-lg border border-red-100 dark:border-red-900/50 flex flex-col gap-1 text-slate-800 dark:text-slate-200 text-sm">
-                              <span className="max-w-[300px] truncate">
-                                <strong>Username</strong> {allData.username}
-                              </span>
-                              <span className="max-w-[300px] truncate">
-                                <strong>Email</strong> {allData.email}
-                              </span>
-                            </span>
-                            <span>
-                              You cannot delete an{" "}
-                              <strong>Administrator</strong> account from the
-                              system. Please contact the super admin if you need
-                              further assistance.
-                            </span>
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter className="mt-4 !flex">
-                          <AlertDialogCancel
-                            variant="outline"
-                            className="!shadow-none w-full"
-                          >
-                            Cancel
-                          </AlertDialogCancel>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  ) : (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="destructive"
-                          className="cursor-pointer w-full shadow-none font-[500] dark:bg-red-500 dark:hover:bg-red-700 dark:text-white md:w-1/2 xl:w-full"
-                        >
-                          Delete Account
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent size="sm" className="!max-w-[500px]">
-                        <AlertDialogHeader>
-                          <AlertDialogMedia className="dark:bg-red-500 bg-red-100 text-red-600 dark:text-white">
-                            <Trash2Icon />
-                          </AlertDialogMedia>
-                          <AlertDialogTitle className="font-[700]">
-                            Are you absolutely sure?
-                          </AlertDialogTitle>
-                          <AlertDialogDescription className="flex flex-col gap-3 text-left mt-2">
-                            <span>
-                              This action cannot be undone. Your account will be
-                              permanently deleted.
-                            </span>
-
-                            <span className="p-3 bg-red-50 dark:bg-red-500 rounded-lg border border-red-100 dark:border-red-900/50 flex flex-col gap-1 text-slate-800 dark:text-slate-200 text-sm">
-                              <span className="max-w-[300px] truncate">
-                                <strong>Username</strong> {allData.username}
-                              </span>
-                              <span className="max-w-[300px] truncate">
-                                <strong>Email</strong> {allData.email}
-                              </span>
-                            </span>
-
-                            <span>
-                              Including all your{" "}
-                              <strong>Containers, Domains</strong>, and data on
-                              the platform will be permanently wiped.
-                            </span>
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter className="mt-4">
-                          <AlertDialogCancel
-                            variant="outline"
-                            className="!shadow-none cursor-pointer cursor-pointer"
-                          >
-                            Cancel
-                          </AlertDialogCancel>
-                          <AlertDialogAction
-                            variant="destructive"
-                            className="shadow-none dark:bg-red-500 dark:hover:bg-red-700 dark:text-white cursor-pointer"
-                            onClick={toDeleteUser}
-                          >
-                            Yes, delete everything
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
-                </div>
-              </div>
-            </div>
+            </CardContent>
+          </Card>
+          <div className="flex flex-col gap-5 lg:[&>div]:flex-1">
+            <Card className="rounded-2xl shadow-none">
+              <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Box className="size-4 text-violet-500" />Container capacity</CardTitle><CardDescription className="text-xs">Resources available to your account.</CardDescription></CardHeader>
+              <CardContent className="space-y-4"><div className="flex items-end justify-between"><p className="text-3xl font-semibold tabular-nums">{used}<span className="ml-2 text-base font-normal text-muted-foreground">/ {limit}</span></p><span className="text-xs text-muted-foreground">{capacity}% used</span></div><Progress value={capacity} aria-label="Container capacity used" className="h-2" /><p className="text-xs text-muted-foreground">{Math.max(0, limit - used)} containers available</p></CardContent>
+            </Card>
+            <Card className="rounded-2xl shadow-none">
+              <CardHeader><div className="flex items-center justify-between gap-3"><CardTitle className="flex items-center gap-2 text-base"><Database className="size-4 text-teal-500" />Database</CardTitle><RecordStatus status={allData.db ? "Connected" : "Not connected"} /></div><CardDescription className="text-xs">{allData.db ? "Your database account is ready to use." : "Request database access for your projects."}</CardDescription></CardHeader>
+              <CardFooter>{allData.db ? <Button asChild variant="outline"><a href="https://pma.addp.site" target="_blank" rel="noopener noreferrer">Open phpMyAdmin<ArrowUpRight /></a></Button> : <Button variant="outline" onClick={toRequestDatabase}><Database />Request access</Button>}</CardFooter>
+            </Card>
           </div>
         </div>
+        <Card className="gap-4 rounded-2xl border-destructive/20 shadow-none">
+          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Trash2 className="size-4 text-destructive" />Delete account</CardTitle><CardDescription className="text-xs">Permanently delete your account, containers, domains and associated data.</CardDescription></CardHeader>
+          <CardFooter className="flex-wrap justify-between gap-3"><p className="text-xs text-muted-foreground">{allData.role === "admin" ? "Administrator accounts cannot be deleted here." : "This action cannot be undone."}</p>
+            <AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" disabled={allData.role === "admin"}><Trash2 />Delete account</Button></AlertDialogTrigger>
+              <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete your account?</AlertDialogTitle><AlertDialogDescription>This permanently removes your account and all associated containers, domains and data. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={toDeleteUser}>Delete account</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+            </AlertDialog>
+          </CardFooter>
+        </Card>
       </div>
-    </div>
+    </LoadingSection>
   );
 };
 export default ComponentProfile;

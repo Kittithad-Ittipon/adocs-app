@@ -1,113 +1,35 @@
 "use client";
 
-import { ShieldUser } from "lucide-react";
+import { LoaderCircle, Send, UserRound } from "lucide-react";
 import Link from "next/link";
-import { ThemeToggle } from "../ThemeToggle";
-import { Input } from "../ui/input";
-import React, { useState } from "react";
-import { toast } from "sonner";
+import { useState, type FormEvent } from "react";
+import AuthFrame from "@/components/auth/AuthFrame";
+import { useAuthRequest } from "@/components/auth/useAuthRequest";
+import { Button } from "@/components/ui/button";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
-const ForgotForm = () => {
-  const [username, setUsername] = useState<string>("");
+export default function ForgotForm() {
+  const [username, setUsername] = useState("");
+  const { pending, error, submit } = useAuthRequest();
 
-  const toForgot = async (e: React.SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const toastID = toast.loading("Loading...");
-    try {
-      const res = await fetch("/api/auth/forgot", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error("Error", { id: toastID, description: data.error });
-        return;
-      }
-      toast.success("Login Success", {
-        id: toastID,
-        description: data.message,
-      });
-    } catch (error) {
-      toast.dismiss(toastID);
-      toast.error("Error", { description: "Server Error 500" });
-    }
-    window.location.href = "/forgot-repassword";
-  };
+  async function toForgot(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = await submit("/api/auth/forgot", { username: username.trim() }, "OTP sent");
+    if (data) window.location.href = "/forgot-repassword";
+  }
+
   return (
-    <div className="relative w-[95%] sm:max-w-[500px] md:max-w-[576px] min-h-180 md:border rounded-xl p-2 flex flex-col justify-between items-center">
-      <div className="absolute top-5 right-5">
-        <ThemeToggle />
-      </div>
-      <div className="w-1/2 px-8 flex justify-center items-center">
-        <Link
-          href={"/"}
-          className="relative w-full text-4xl flex font-[700] justify-center items-center py-3 pt-10 gap-5 cursor-pointer transition duration-300 group"
-        >
-          <p className="bg-[linear-gradient(to_right,#0ea5e9,#67e8f9,#818cf8,#0ea5e9)] bg-clip-text text-transparent animate-rgb">
-            ADOCS
-          </p>
-          <span className="absolute rounded-xl bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-sky-500 to-cyan-300 transform scale-x-0 group-hover:scale-x-100 transition duration-300 origin-left"></span>
-        </Link>
-      </div>
-      <div className="h-[50%] w-full">
-        <form
-          action="#"
-          method="post"
-          className="w-full h-full flex flex-col gap-10 md:px-8"
-          onSubmit={toForgot}
-        >
-          <div className="flex flex-col gap-5">
-            <div className="flex gap-2 items-center text-xl font-[600]">
-              <ShieldUser size={30} /> Username or Email
-            </div>
-            <div>
-              <Input
-                placeholder="Enter Your Username or Email"
-                id="username"
-                type="text"
-                className="h-15 shadow-none"
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                }}
-                onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                  if (e.key === " ") {
-                    e.preventDefault();
-                  }
-                }}
-              ></Input>
-            </div>
-          </div>
-          <div className="flex items-center justify-center mt-5">
-            <button className="w-full p-3 h-auto bg-black/85 text-white text-lg font-[500] rounded-lg cursor-pointer transition duration-200 hover:bg-black/75 dark:text-black dark:bg-white dark:hover:bg-white/85 dark:hover:text-black">
-              Send OTP
-            </button>
-          </div>
-        </form>
-      </div>
-      <div className="mb-13 flex w-full px-8 justify-center flex-col gap-2 items-center pt-2">
-        <div>
-          Already have an account ?{" "}
-          <Link
-            href={"/login"}
-            className="text-sky-500 font-[500] text-sky-500 dark:text-cyan-300 transition duration-200 hover:text-black hover:dark:text-white"
-          >
-            Login
-          </Link>
-        </div>
-        <div>
-          Don’t have an account ?{" "}
-          <Link
-            href={"/register"}
-            className="text-sky-500 font-[500] text-sky-500 dark:text-cyan-300 transition duration-200 hover:text-black hover:dark:text-white"
-          >
-            Register
-          </Link>
-        </div>
-      </div>
-    </div>
+    <AuthFrame loading={pending} label="Password recovery" footer={<><Button asChild variant="link" size="sm"><Link href="/login">Back to Login</Link></Button><div className="flex items-center gap-1"><span>Don&apos;t have an account?</span><Button asChild variant="link" size="sm" className="px-1"><Link href="/register">Register</Link></Button></div></>}>
+      <form onSubmit={toForgot} aria-busy={pending} className="space-y-6">
+        <Field>
+          <FieldLabel htmlFor="username"><UserRound className="size-4" aria-hidden="true" /> Username or Email</FieldLabel>
+          <Input id="username" name="username" required autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="Enter your username or email" value={username} onChange={(event) => setUsername(event.target.value)} disabled={pending} aria-describedby="otp-description" className="h-11" />
+          <FieldDescription id="otp-description" className="text-xs">We&apos;ll send an OTP to the email address on your account.</FieldDescription>
+        </Field>
+        <p role="alert" className="text-sm text-destructive">{error}</p>
+        <Button type="submit" size="lg" disabled={pending} className="h-11 w-full">{pending ? <><LoaderCircle className="motion-safe:animate-spin" aria-hidden="true" /> Sending code...</> : <>Send OTP <Send aria-hidden="true" /></>}</Button>
+      </form>
+    </AuthFrame>
   );
-};
-export default ForgotForm;
+}

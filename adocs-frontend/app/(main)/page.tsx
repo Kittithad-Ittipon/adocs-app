@@ -1,213 +1,106 @@
 import AboutUs from "@/components/AboutUs";
 import ContactUs from "@/components/ContactUs";
 import PoweredBy from "@/components/PoweredBy";
-import { ArrowRight, ArrowUpRight, Rocket, Settings } from "lucide-react";
+import Reveal from "@/components/Reveal";
+import HomeExperience from "@/components/HomeExperience";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowRight, ArrowUpRight, Boxes, Braces, CodeXml, Database, Globe, Rocket, Server, Settings, Terminal, Workflow } from "lucide-react";
 import Link from "next/link";
-import {
-  FaCogs,
-  FaDatabase,
-  FaDocker,
-  FaHtml5,
-  FaNodeJs,
-  FaPython,
-  FaServer,
-} from "react-icons/fa";
-import { SiPhp } from "react-icons/si";
 
-const Main = () => {
-  const featuresData = [
-    {
-      title: "Deployment",
-      description:
-        "Deploy your applications quickly and seamlessly with automated workflows.",
-      icon: (
-        <Rocket className="w-8 h-8 text-sky-500 dark:text-cyan-300 group-hover:text-white dark:group-hover:text-black transition duration-200" />
-      ),
-      link: "https://hub.docker.com/",
-    },
-    {
-      title: "Docker Containers",
-      description:
-        "Run and manage isolated environments safely using Docker integration.",
-      icon: (
-        <FaDocker className="w-8 h-8 text-sky-500 dark:text-cyan-300 group-hover:text-white dark:group-hover:text-black transition duration-200" />
-      ),
-      link: "https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04",
-    },
-    {
-      title: "Local DNS",
-      description:
-        "Easily map your internal services with custom local domain names.",
-      icon: (
-        <FaServer className="w-8 h-8 text-sky-500 dark:text-cyan-300 group-hover:text-white dark:group-hover:text-black transition duration-200" />
-      ),
-      link: "https://technitium.com/dns/",
-    },
-    {
-      title: "Containers Management",
-      description:
-        "Take full control to start, stop, publish, or delete your containers.",
-      icon: (
-        <Settings className="w-8 h-8 text-sky-500 dark:text-cyan-300 group-hover:text-white dark:group-hover:text-black transition duration-200" />
-      ),
-      link: "https://docs.docker.com/reference/cli/docker/container/",
-    },
-  ];
+const features = [
+  { title: "Deployment", description: "Deploy your applications quickly and seamlessly with automated workflows.", icon: Rocket, link: "https://hub.docker.com/" },
+  { title: "Docker Containers", description: "Run and manage isolated environments safely using Docker integration.", icon: Boxes, link: "https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04" },
+  { title: "Local DNS", description: "Easily map your internal services with custom local domain names.", icon: Globe, link: "https://technitium.com/dns/" },
+  { title: "Containers Management", description: "Take full control to start, stop, publish, or delete your containers.", icon: Settings, link: "https://docs.docker.com/reference/cli/docker/container/" },
+];
 
-  const techStack = [
-    {
-      title: "HTML",
-      description:
-        "Jumpstart your static websites with our ready-to-deploy HTML, CSS, and JS templates.",
-      icon: (
-        <FaHtml5 className="w-10 h-10 text-black dark:text-white group-hover:text-sky-500 dark:group-hover:text-cyan-300 transition duration-200" />
-      ),
-      link: "https://adocs-document.vercel.app/docs/html",
-    },
-    {
-      title: "Python",
-      description:
-        "Ready-to-deploy HTML, CSS, and JS templates for static sites.",
-      icon: (
-        <FaPython className="w-10 h-10 text-black dark:text-white group-hover:text-sky-500 dark:group-hover:text-cyan-300 transition duration-200" />
-      ),
-      link: "https://adocs-document.vercel.app/docs/python/flask",
-    },
-    {
-      title: "PHP",
-      description: "Optimized raw PHP and Laravel templates for dynamic apps.",
-      icon: (
-        <SiPhp className="w-10 h-10 text-black dark:text-white group-hover:text-sky-500 dark:group-hover:text-cyan-300 transition duration-200" />
-      ),
-      link: "https://adocs-document.vercel.app/docs/php/php",
-    },
-    {
-      title: "Node.js",
-      description:
-      "Node.js, Express, and Next.js templates for full-stack deployment.",
-      icon: (
-        <FaNodeJs className="w-10 h-10 text-black dark:text-white group-hover:text-sky-500 dark:group-hover:text-cyan-300 transition duration-200" />
-      ),
-      link: "https://adocs-document.vercel.app/docs/nodejs/express",
-    },
-    {
-      title: "Databases",
-      description:
-      "Ready-made MySQL and PostgreSQL templates for instant database setups.",
-      icon: (
-        <FaDatabase className="w-10 h-10 text-black dark:text-white group-hover:text-sky-500 dark:group-hover:text-cyan-300 transition duration-200" />
-      ),
-      link: "https://adocs-document.vercel.app/docs/mysql",
-    },
-    {
-      title: "Management Tools",
-      description:
-      "Container app to manage entire system. Read the docs to deploy and try it yourself.",
-      icon: (
-        <FaCogs className="w-10 h-10 text-black dark:text-white group-hover:text-sky-500 dark:group-hover:text-cyan-300 transition duration-200" />
-      ),
-      link: "https://adocs-document.vercel.app/docs/docker-app",
-    },
-  ];
+const stacks = [
+  { title: "HTML", description: "Jumpstart static websites with ready-to-deploy HTML, CSS, and JavaScript templates.", icon: CodeXml, link: "https://adocs-document.vercel.app/docs/html" },
+  { title: "Python", description: "Build and deploy Python web applications with ready-to-use Flask templates.", icon: Terminal, link: "https://adocs-document.vercel.app/docs/python/flask" },
+  { title: "PHP", description: "Optimized PHP and Laravel templates for dynamic applications.", icon: Braces, link: "https://adocs-document.vercel.app/docs/php/php" },
+  { title: "Node.js", description: "Node.js, Express, and Next.js templates for full-stack deployment.", icon: Server, link: "https://adocs-document.vercel.app/docs/nodejs/express" },
+  { title: "Databases", description: "Ready-made MySQL and PostgreSQL templates for instant database setups.", icon: Database, link: "https://adocs-document.vercel.app/docs/mysql" },
+  { title: "Management Tools", description: "Container applications to manage your system. Follow the docs to get started.", icon: Workflow, link: "https://adocs-document.vercel.app/docs/docker-app" },
+];
 
+export default function Main() {
   return (
-    <main className="w-full min-h-screen flex items-center justify-start flex-col">
-      <div className="w-full h-100 md:h-120 xl:h-[calc(100dvh-120px)] bg-[url('/images/w02.webp')] md:bg-[url('/images/w07.jpg')] bg-cover bg-start md:bg-center bg-no-repeat xl:bg-cover flex items-center justify-center overflow-hidden">
-        <div className="transition duration-200 w-full h-full bg-black/15 dark:bg-black/45 flex items-center justify-center">
-          <div className="w-[95%] xl:w-[80%] h-full flex items-start justify-start flex-col gap-8 xl:gap-11">
-            <p className="flex flex-col font-[900] text-4xl md:text-6xl ld:text-6xl xl:text-8xl text-white leading-tight mt-8 xl:mt-10">
-              Learn <br />
-              Build <br />
-              Deploy
+    <HomeExperience>
+    <main className="flex min-h-screen w-full flex-col items-center">
+      <section aria-labelledby="hero-title" className="relative isolate flex min-h-[540px] w-full items-center overflow-hidden bg-[url('/images/w02.webp')] bg-cover bg-center md:min-h-[620px] md:bg-[url('/images/w07.jpg')] xl:min-h-[calc(100dvh-120px)]">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/80 via-black/50 to-black/20" />
+        <div className="mx-auto w-full max-w-7xl px-6 py-16 md:px-10">
+          <Reveal className="max-w-2xl space-y-7">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm">
+              <Boxes className="size-4" aria-hidden="true" /> Build with containers
             </p>
-            <p className="text-white w-[85%] md:w-[65%] xl:w-[55%] text-xs md:text-[17px] xl:text-lg font-[500]">
-              Manage containers, launch environments, and deploy websites
-              through a user-friendly platform designed for developers. 
-            </p>
-            <Link
-              href="https://adocs-document.vercel.app"
-              className="relative w-auto flex font-[700] justify-start items-center text-xl md:text-3xl xl:text-4xl text-white gap-1 transition duration-200 p-2 rounded-xl group"
-            >
-              Get Started
-              <ArrowUpRight size={30} className="flex md:hidden" />
-              <ArrowUpRight size={35} className="hidden md:flex xl:hidden" />
-              <ArrowUpRight size={40} className="hidden xl:flex" />
-              <span className="absolute rounded-xl bottom-0 left-0 w-full h-[5px] bg-gradient-to-r from-sky-500 via-cyan-300 to-violet-500 transform scale-x-0 group-hover:scale-x-100 transition duration-300 origin-left"></span>
-            </Link>
+            <h1 id="hero-title" className="text-6xl font-bold tracking-tight text-white md:text-8xl">Learn.<br />Build.<br /><span className="text-cyan-300">Deploy.</span></h1>
+            <p className="max-w-lg text-base leading-relaxed text-white/85 md:text-lg">Manage containers, launch environments, and deploy websites through a user-friendly platform designed for developers.</p>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild size="lg" className="h-12 bg-white px-6 text-black hover:bg-white/90">
+                <Link href="https://adocs-document.vercel.app">Get Started <ArrowUpRight aria-hidden="true" /></Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="h-12 border-white/30 bg-black/20 px-6 text-white hover:bg-white/15 hover:text-white dark:bg-black/20">
+                <Link href="#features">Explore features <ArrowRight aria-hidden="true" /></Link>
+              </Button>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      <section id="features" aria-labelledby="features-title" className="w-full max-w-7xl scroll-mt-24 px-6 py-20 md:px-10">
+        <Reveal className="mx-auto mb-10 max-w-2xl space-y-3 text-center">
+          <p className="text-sm font-semibold uppercase tracking-widest text-sky-600 dark:text-cyan-300">Your deployment toolkit</p>
+          <h2 id="features-title" className="text-3xl font-bold tracking-tight md:text-4xl">Everything you need to ship</h2>
+          <p className="text-muted-foreground">Core tools for deploying applications and managing your local environment.</p>
+        </Reveal>
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          {features.map(({ title, description, icon: Icon, link }, index) => (
+            <Reveal key={title} delay={index * 0.06} className="h-full" liftOnHover>
+              <Card className="group h-full transition-[border-color,box-shadow,background-color] duration-300 ease-out hover:border-sky-500/50 hover:shadow-xl hover:shadow-sky-500/10 motion-reduce:transition-none">
+                <CardHeader className="flex-1">
+                  <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-cyan-300"><Icon className="size-6" aria-hidden="true" /></div>
+                  <CardTitle className="text-lg">{title}</CardTitle>
+                  <CardDescription>{description}</CardDescription>
+                </CardHeader>
+                <CardFooter>
+                  <Button asChild variant="ghost" className="-ml-2 text-sky-600 dark:text-cyan-300">
+                    <a href={link} target="_blank" rel="noopener noreferrer" aria-label={`Learn more about ${title} (opens in a new tab)`}>Learn More <ArrowRight className="motion-safe:transition-transform motion-safe:group-hover:translate-x-1" aria-hidden="true" /></a>
+                  </Button>
+                </CardFooter>
+              </Card>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="stacks-title" className="w-full border-y bg-muted/35">
+        <div className="mx-auto max-w-7xl px-6 py-20 md:px-10">
+          <Reveal className="mx-auto mb-10 max-w-2xl space-y-3 text-center">
+            <h2 id="stacks-title" className="text-3xl font-bold tracking-tight md:text-4xl">Frameworks &amp; Databases</h2>
+            <p className="text-muted-foreground">Deploy a wide range of applications with our officially documented stacks.</p>
+          </Reveal>
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {stacks.map(({ title, description, icon: Icon, link }, index) => (
+              <Reveal key={title} delay={(index % 3) * 0.06} className="h-full" liftOnHover>
+                <Card className="group h-full transition-[border-color,box-shadow,background-color] duration-300 ease-out hover:border-sky-500/50 hover:shadow-xl hover:shadow-sky-500/10 motion-reduce:transition-none">
+                  <CardHeader className="flex-1">
+                    <Icon className="mb-4 size-8 text-sky-600 dark:text-cyan-300" aria-hidden="true" />
+                    <CardTitle className="text-xl">{title}</CardTitle>
+                    <CardDescription>{description}</CardDescription>
+                  </CardHeader>
+                  <CardFooter><Button asChild variant="ghost" className="-ml-2"><a href={link} target="_blank" rel="noopener noreferrer" aria-label={`Read ${title} documentation (opens in a new tab)`}>Read Docs <ArrowUpRight aria-hidden="true" /></a></Button></CardFooter>
+                </Card>
+              </Reveal>
+            ))}
           </div>
         </div>
-      </div>
-      <div className="w-full flex justify-start flex-col items-center">
-        <div className="flex items-center mt-10 md:mt-15 xl:mt-20 text-2xl md:text-4xl font-[700] text-sky-500 dark:text-cyan-300">
-          Features
-        </div>
-        <div className="flex items-start text-sm md:text-lg xl:text-lg font-[400] text-gray-500 mt-5 mb-5 text-center px-6">
-          Core tools for deploying applications and managing your local
-          environment
-        </div>
-        <div className="grid xl:grid-cols-4 md:grid-cols-2 grid-cols-1 xl:w-[80%] w-[95%] gap-6 mt-5 mb-5">
-          {featuresData.map((value, index) => (
-            <div
-              key={index}
-              className="gap-4 group flex flex-col rounded-xl border p-4 cursor-pointer transition duration-200 hover:border-sky-500/50 hover:shadow hover:-translate-y-1 hover:shadow-lg dark:hover:border-cyan-300/50 dark:hover:shadow-cyan-500/10"
-            >
-              <div className="w-18 h-18 rounded-xl bg-sky-500/10 dark:bg-cyan-300/5 flex items-center justify-center items-center mb-5 transition duration-200 group-hover:bg-sky-500 dark:group-hover:bg-cyan-300">
-                {value.icon}
-              </div>
-              <div className="font-[700] text-xl">{value.title}</div>
-              <div className="text-md text-gray-500 border-b pb-4">
-                {value.description}
-              </div>
-              <div className="text-sky-500 font-[500] flex gap-1 items-center text-md group-hover:gap-3 transiton duration-200 dark:text-cyan-300">
-                <a href={value.link} target="_blank" rel="noopener noreferrer">
-                  Learn More
-                </a>
-                <ArrowRight size={17} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="w-[95%] xl:w-[80%] flex justify-start flex-col items-center md:bg-gray-100/35 dark:bg-transparent mt-10 mb-10 rounded-xl py-2">
-        <div className="flex items-center mt-5 md:mt-10 xl:mt-12 text-2xl md:text-4xl font-[700] text-black dark:text-white">
-          Frameworks & Databases
-        </div>
-        <div className="flex items-start text-sm md:text-lg xl:text-lg font-[400] text-gray-500 mt-5 mb-5 text-center px-6">
-          Deploy a wide range of applications. Here are our officially
-          documented stacks
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 md:w-[90%] xl:w-[80%] gap-6 mt-5 mb-5">
-          {techStack.map((value, index) => (
-            <div
-              key={index}
-              className="group border p-4 xl:p-8 rounded-xl bg-white dark:bg-transparent flex flex-col gap-5 cursor-pointer transition duration-200 hover:border-sky-500/50 hover:shadow hover:-translate-y-1 hover:shadow-lg dark:hover:border-cyan-300/50 dark:hover:shadow-cyan-500/10"
-            >
-              <div>{value.icon}</div>
-              <div className="font-[700] text-xl transition duration-200 group-hover:text-sky-500 dark:group-hover:text-cyan-300">
-                {value.title}
-              </div>
-              <div className="text-md text-gray-500 border-b pb-4 md:h-25">
-                {value.description}
-              </div>
-              <div className="text-gray-black font-[500] flex gap-1 items-center text-md group-hover:gap-3 transiton duration-200 dark:text-white group-hover:text-sky-500">
-                <a
-                  href={value.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Read Docs
-                </a>
-                <ArrowRight size={17} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      {/* <AboutUs /> */}
+      </section>
+      <AboutUs />
       <ContactUs />
       <PoweredBy />
     </main>
+    </HomeExperience>
   );
-};
-
-export default Main;
+}

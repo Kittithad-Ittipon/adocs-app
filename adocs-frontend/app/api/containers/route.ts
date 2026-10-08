@@ -16,14 +16,21 @@ export async function GET() {
       },
       cache: "no-store",
     });
+    if (flaskRes.status === 204) return NextResponse.json([]);
     const flaskData = await flaskRes.json();
+    if (flaskRes.status === 401 && flaskData?.error === "No Containers Data") {
+      return NextResponse.json([]);
+    }
     if (!flaskRes.ok) {
       return NextResponse.json(
         { error: flaskData.error },
         { status: flaskRes.status },
       );
     }
-    const transformData = flaskData.map((item: any) => ({
+    if (!Array.isArray(flaskData) || !flaskData.every((item) => item !== null && typeof item === "object" && !Array.isArray(item))) {
+      return NextResponse.json({ error: "Invalid container data returned by the service." }, { status: 502 });
+    }
+    const transformData = flaskData.map((item: Record<string, unknown>) => ({
       containerName: item.container_name,
       domain: item.domain,
       image: item.type,
@@ -35,7 +42,7 @@ export async function GET() {
       publish: item.publish,
     }));
     return NextResponse.json(transformData, { status: flaskRes.status });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }

@@ -69,7 +69,7 @@ POOL = PooledDB(
     maxconnections=50,  # Max Connections in the pool
     mincached=5,  # Idle connections to keep in the pool
     blocking=True,  # Block if no connections are available
-    host=os.getenv("DB_HOST"),
+    host=os.getenv("DB_HOST") or "database",
     user=os.getenv("DB_USER"),
     password=os.getenv("DB_PASS"),
     database=os.getenv("DB_NAME"),
@@ -99,8 +99,7 @@ def get_rate_limit_key():
 limiter = Limiter(
     key_func=get_rate_limit_key,
     app=app,
-    storage_uri="redis://redis-broker:6379/3",  # Use Redis Production Database for Rate Limiting
-    # storage_uri="redis://localhost:6379/3",  # Use Redis Development Database for Rate Limiting
+    storage_uri=os.getenv("RATELIMIT_STORAGE_URI") or "redis://redis-broker:6379/3",
 )
 # Function to get a database connection from the pool
 def get_db_connection():
@@ -117,7 +116,7 @@ def get_npm_token():
     if NPM_TOKEN and now < NPM_EXPIRED:
         return NPM_TOKEN
 
-    url = f"{os.getenv('NPM_URL')}/api/tokens"
+    url = f"{os.getenv('NPM_URL') or 'http://nginx-proxy-manager:81'}/api/tokens"
     payload = {
         "identity": os.getenv("NPM_EMAIL"),
         "secret": os.getenv("NPM_PASSWORD")
@@ -135,7 +134,7 @@ def nginx_update_proxy(npm_id, domain, container_name, port, protocol):
     if not token:
         return False, "NPM Auth Failed"
 
-    url = f"{os.getenv('NPM_URL')}/api/nginx/proxy-hosts/{npm_id}"
+    url = f"{os.getenv('NPM_URL') or 'http://nginx-proxy-manager:81'}/api/nginx/proxy-hosts/{npm_id}"
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
@@ -528,7 +527,7 @@ def container_data():
         containers_data = cursor.fetchall()
 
         if not containers_data:
-            return jsonify({"error": "No Containers Data"}), 401
+            return jsonify([]), 200
 
         return jsonify(containers_data), 200
 
@@ -731,7 +730,7 @@ def active_site():
         system_data = cursor.fetchall()
 
         if not system_data:
-            return jsonify({"error": "No System Data"}) , 401
+            return jsonify([]), 200
         
         return jsonify(system_data) , 200
 
@@ -1028,13 +1027,13 @@ def logs():
             cursor.execute("SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 200")
             logs_data = cursor.fetchall()
             if not logs_data:
-                return jsonify({"error": "No Logs Data"}) , 401
+                return jsonify([]), 200
             return jsonify(logs_data) , 200
         elif role == "user":
             cursor.execute("SELECT * FROM activity_logs WHERE username = %s ORDER BY created_at DESC LIMIT 100",(username,))
             logs_data = cursor.fetchall()
             if not logs_data:
-                return jsonify({"error": "No Logs Data"}) , 401
+                return jsonify([]), 200
             return jsonify(logs_data) , 200
         else:
             return jsonify({"error": "Fetch Logs Error"}) , 401

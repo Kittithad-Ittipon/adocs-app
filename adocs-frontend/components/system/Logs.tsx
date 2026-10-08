@@ -1,24 +1,15 @@
 "use client";
+import LogRecords from "@/components/system/shared/LogRecords";
+import SystemPageHeader from "@/components/system/shared/SystemPageHeader";
+import { Card } from "@/components/ui/card";
+
+import LoadingSection from "@/components/feedback/LoadingSection";
+import { useLoadingTasks } from "@/components/feedback/useLoadingTasks";
 
 import { useEffect, useState } from "react";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "../ui/breadcrumb";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../ui/table";
-import { BsTerminal } from "react-icons/bs";
-import { CircleX, PaintBucket } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Terminal, X } from "lucide-react";
 import { toast } from "sonner";
 
 type logsItem = {
@@ -31,199 +22,59 @@ type logsItem = {
 };
 
 const ComponentLogs = () => {
+  const { loading, run } = useLoadingTasks(["fetchLogsData"]);
   const [allData, setAllData] = useState<logsItem[]>([]);
   const [selectedLog, setSelectedLog] = useState<logsItem | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false); const [error, setError] = useState<string | null>(null); const [retry, setRetry] = useState(0);
   const [isChange, setIsChange] = useState<string>("text-sky-500");
 
   useEffect(() => {
     const fetchLogsData = async () => {
-      const toastID = "toast-logs";
+      const toastID = "toast-logs"; setError(null);
       try {
         const res = await fetch("/api/logs", { method: "GET" });
         if (!res.ok) {
-          if (allData.length == 0) {
-            return;
-          }
-          toast.error("Error Fetch Data", {
-            description: "Failed to load",
-            id: toastID,
-          });
+          const body = await res.json().catch(() => null);
+          const message = body?.error || "Unable to load logs (HTTP " + res.status + ").";
+          setError(message);
+          toast.error("Unable to load logs", { description: message, id: toastID });
           return;
         }
         const data = await res.json();
-        setAllData(data);
-      } catch (error) {
+        if (!Array.isArray(data)) throw new Error("Invalid logs response"); setAllData(data);
+      } catch {
+        setError("Unable to load logs. Please try again.");
         toast.error("Error Fetch Data", {
           description: "Server error 500",
           id: toastID,
         });
       }
     };
-    fetchLogsData();
-  }, []);
+    void run("fetchLogsData", fetchLogsData);
+  }, [run, retry]);
 
   return (
-    <div className="max-w-screen min-h-full flex items-center justify-start flex-col">
-      <Breadcrumb className="h-full w-full justify-center items-center mt-10 md:mt-2 md:px-9 md:py-5">
-        <BreadcrumbList className="w-full h-full text-md xl:text-lg font-[600] justify-center mb-4 sm:mb-0 md:justify-start items-center">
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/" className="text-gray-400">
-              Home
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage className="font-[600]">Logs</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-      <div className="grid grid-cols-1 w-full p-4 md:px-8">
-        <div
-          className={`border rounded-xl overflow-hidden w-full overflow-y-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] transition-all duration-400 ${isOpen ? "max-h-[300px]" : "max-h-[700px]"}`}
-        >
-          <Table className="w-full">
-            <TableHeader className="bg-muted/50">
-              <TableRow className="text-sm text-muted-foreground">
-                <TableHead className="font-semibold px-6 h-12">NO.</TableHead>
-                <TableHead className="font-semibold px-6 h-12">
-                  USERNAME
-                </TableHead>
-                <TableHead className="font-semibold h-12 py-5">
-                  CONTAINER
-                </TableHead>
-                <TableHead className="font-semibold h-12">ACTION</TableHead>
-                <TableHead className="font-semibold h-12">UPDATE</TableHead>
-                <TableHead className="font-semibold h-12 text-center">
-                  STATUS
-                </TableHead>
-                <TableHead className="font-semibold h-12">DETAILS</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {allData.map((value, index) => (
-                <TableRow
-                  key={index}
-                  className="transition-colors hover:bg-muted/40"
-                >
-                  <TableCell className="px-6 py-4">
-                    <div className="max-w-[200px] truncate font-medium">
-                      {index + 1}
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-6 py-4">
-                    <div
-                      className="max-w-[200px] truncate font-[400]"
-                      title={value.username}
-                    >
-                      {value.username}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-4">
-                    <div
-                      className="max-w-[200px] truncate font-[400]"
-                      title={value.containers}
-                    >
-                      {value.containers}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-4">
-                    <span
-                      className="px-2.5 py-1 bg-secondary text-secondary-foreground rounded-md text-xs font-medium max-w-[150px] truncate inline-block"
-                      title={value.action}
-                    >
-                      {value.action}
-                    </span>
-                  </TableCell>
-                  <TableCell
-                    className="py-4 text-muted-foreground text-sm max-w-[150px] truncate"
-                    title={value.upDateTime}
-                  >
-                    {value.upDateTime}
-                  </TableCell>
-                  <TableCell className="py-4 text-center">
-                    <span
-                      className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
-                        value.status === "SUCCESS"
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                      }`}
-                    >
-                      {value.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="py-4 flex items-center justify-start">
-                    <button
-                      onClick={() => {
-                        setSelectedLog(value);
-                        setIsOpen(true);
-                      }}
-                      className="flex justify-start items-center pl-4 text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-                    >
-                      <BsTerminal size={25} />
-                    </button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {allData.length === 0 && (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell
-                    colSpan={7}
-                    className="py-5 text-center text-muted-foreground font-medium"
-                  >
-                    No Results Found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        <div
-          className={`relative w-full mt-4 rounded-xl overflow-hidden bg-black transition-all duration-400 ${isOpen ? "h-[400px]" : "h-[0px]"}`}
-        >
-          <button
-            onClick={() => {
-              setSelectedLog(null);
-              setIsOpen(false);
-            }}
-            className="absolute top-4 right-5 text-gray-400 hover:text-gray-200 z-20 cursor-pointer transition-colors"
-          >
-            <CircleX />
-          </button>
-          <button
-            onClick={() => {
-              setIsChange("text-sky-500");
-            }}
-            className="absolute top-4 right-15 text-sky-400 hover:text-sky-700 z-20 cursor-pointer transition-colors"
-          >
-            <PaintBucket />
-          </button>
-          <button
-            onClick={() => {
-              setIsChange("text-gray-300");
-            }}
-            className="absolute top-4 right-25 text-gray-300 hover:text-gray-500 z-20 cursor-pointer transition-colors"
-          >
-            <PaintBucket />
-          </button>
-          <button
-            onClick={() => {
-              setIsChange("text-green-500");
-            }}
-            className="absolute top-4 right-35 text-green-400 hover:text-green-700 z-20 cursor-pointer transition-colors"
-          >
-            <PaintBucket />
-          </button>
-          <div className="w-full h-full overflow-y-auto scrollbar-hide px-12 md:py-11 py-12 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] text-[12px] md:text-[17px]">
-            <div
-              className={`whitespace-pre-wrap font-mono ${isChange} transition-colors duration-200`}
-            >
-              {selectedLog?.details}
+    <LoadingSection loading={loading} layout="table">
+      <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
+        <SystemPageHeader title="Logs" description="Browse activity and inspect detailed logs." />
+        {error && <Card className="gap-3 p-5 shadow-none" role="alert"><p className="text-sm text-destructive">{error}</p><Button variant="outline" className="w-fit" onClick={() => setRetry((value) => value + 1)}>Try again</Button></Card>}
+        <LogRecords records={allData} onDetails={(record) => { setSelectedLog(record); setIsOpen(true); }} />
+        {isOpen && (
+          <Card className="gap-0 overflow-hidden rounded-2xl bg-zinc-950 py-0 text-zinc-200 shadow-none">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+              <div className="flex min-w-0 items-center gap-2"><Terminal className="size-4 text-zinc-400" /><h2 className="break-all text-sm font-medium">{selectedLog?.containers || "Log details"}</h2></div>
+              <div className="flex items-center gap-1">
+                {[{ label: "Blue", color: "text-sky-400" }, { label: "Gray", color: "text-zinc-300" }, { label: "Green", color: "text-emerald-400" }].map((item) => (
+                  <Button key={item.label} type="button" size="icon-sm" variant="ghost" aria-label={item.label + " log text"} aria-pressed={isChange === item.color} onClick={() => setIsChange(item.color)} className={"hover:bg-white/10 hover:text-zinc-100 " + item.color}><span className="size-2.5 rounded-full bg-current" /></Button>
+                ))}
+                <Button type="button" size="icon-sm" variant="ghost" aria-label="Close log details" onClick={() => { setSelectedLog(null); setIsOpen(false); }} className="ml-2 hover:bg-white/10 hover:text-zinc-100"><X /></Button>
+              </div>
             </div>
-          </div>
-        </div>
+            <pre tabIndex={0} aria-label="Log output" className={"max-h-96 min-h-40 overflow-auto whitespace-pre-wrap break-words p-4 font-mono text-xs leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:p-5 sm:text-sm " + isChange}>{selectedLog?.details || "No log details available."}</pre>
+          </Card>
+        )}
       </div>
-    </div>
+    </LoadingSection>
   );
 };
 export default ComponentLogs;

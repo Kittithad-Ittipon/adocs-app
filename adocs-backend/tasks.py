@@ -33,7 +33,7 @@ celery_app = Celery('tasks', broker='redis://redis-broker:6379/1', backend='redi
 # Database Connection With pymysql
 def get_db_connection():
     return pymysql.connect(
-        host=os.getenv("DB_HOST"),
+        host=os.getenv("DB_HOST") or "database",
         user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASS"),
         database=os.getenv("DB_NAME"),
@@ -55,7 +55,7 @@ def get_npm_token():
     if NPM_TOKEN and now < NPM_EXPIRED:
         return NPM_TOKEN
 
-    url = f"{os.getenv('NPM_URL')}/api/tokens"
+    url = f"{os.getenv('NPM_URL') or 'http://nginx-proxy-manager:81'}/api/tokens"
     payload = {
         "identity": os.getenv("NPM_EMAIL"),
         "secret": os.getenv("NPM_PASSWORD")
@@ -73,7 +73,7 @@ def nginx_add_proxy(domain, container_name, port, protocol):
     if not token:
         return False, "NPM Auth Failed"
 
-    url = f"{os.getenv('NPM_URL')}/api/nginx/proxy-hosts"
+    url = f"{os.getenv('NPM_URL') or 'http://nginx-proxy-manager:81'}/api/nginx/proxy-hosts"
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
@@ -114,7 +114,7 @@ def nginx_update_proxy(npm_id, domain, container_name, port, protocol):
     if not token: 
         return False, "NPM Auth Failed"
 
-    url = f"{os.getenv('NPM_URL')}/api/nginx/proxy-hosts/{npm_id}"
+    url = f"{os.getenv('NPM_URL') or 'http://nginx-proxy-manager:81'}/api/nginx/proxy-hosts/{npm_id}"
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
@@ -155,7 +155,7 @@ def nginx_delete_proxy(npm_id):
     if not token: 
         return False, "NPM Auth Failed"
 
-    url = f"{os.getenv('NPM_URL')}/api/nginx/proxy-hosts/{npm_id}"
+    url = f"{os.getenv('NPM_URL') or 'http://nginx-proxy-manager:81'}/api/nginx/proxy-hosts/{npm_id}"
     headers = {
         "Authorization": f"Bearer {token}"
     }

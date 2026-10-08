@@ -1,20 +1,32 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Moon, Sun } from "lucide-react"
-import { useTheme } from "next-themes"
+import { motion, useAnimationControls, useReducedMotion } from "framer-motion";
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
+import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme()
+  const { resolvedTheme, setTheme } = useTheme();
+  const controls = useAnimationControls();
+  const reducedMotion = useReducedMotion();
+
+  function toggleTheme() {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+    if (!reducedMotion) {
+      void controls.start({
+        rotate: [0, -12, 8, 0],
+        scale: [1, 0.9, 1.04, 1],
+        transition: { duration: 0.35, ease: "easeInOut" },
+      });
+    }
+  }
 
   return (
-    <button
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="relative flex items-center justify-center p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-all overflow-hidden"
-      aria-label="Toggle theme"
-    >
-      <Moon className="size-[26px] rotate-0 scale-100 transition-all duration-500 dark:-rotate-90 dark:scale-0" />
-      <Sun className="absolute size-[26px] rotate-90 scale-0 transition-all duration-500 dark:rotate-0 dark:scale-100" />
-    </button>
-  )
+    <Button asChild type="button" variant="ghost" size="icon" onClick={toggleTheme} className="relative size-[42px] overflow-hidden p-2 active:translate-y-0" aria-label="Toggle theme">
+      <motion.button initial={false} animate={controls} whileTap={reducedMotion ? undefined : { scale: 0.92 }}>
+        <Moon aria-hidden="true" className="size-[26px] rotate-0 scale-100 motion-safe:transition-transform motion-safe:duration-200 dark:-rotate-90 dark:scale-0" />
+        <Sun aria-hidden="true" className="absolute size-[26px] rotate-90 scale-0 motion-safe:transition-transform motion-safe:duration-200 dark:rotate-0 dark:scale-100" />
+      </motion.button>
+    </Button>
+  );
 }

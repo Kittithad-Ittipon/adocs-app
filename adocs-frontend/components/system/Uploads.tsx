@@ -1,21 +1,28 @@
 "use client";
+import LoadingLine from "@/components/feedback/LoadingLine";
+import MotionSurface from "@/components/feedback/MotionSurface";
+import { useLoadingTasks } from "@/components/feedback/useLoadingTasks";
+import SystemPageHeader from "@/components/system/shared/SystemPageHeader";
+import { Card } from "@/components/ui/card";
 
+import { cn } from "@/lib/utils";
+import { pollCeleryTask } from "@/lib/task-check";
 import {
   CircleCheck,
   CircleQuestionMark,
   CircleX,
   CloudUpload,
+  LoaderCircle,
 } from "lucide-react";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "../ui/breadcrumb";
 import React, { useRef, useState } from "react";
+import { toast } from "sonner";
+import { Button } from "../ui/button";
 import { Field, FieldDescription, FieldLabel } from "../ui/field";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "../ui/hover-card";
 import { Input } from "../ui/input";
 import {
   InputGroup,
@@ -32,25 +39,53 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "../ui/hover-card";
-import { Button } from "../ui/button";
-import { toast } from "sonner";
-import { pollCeleryTask } from "@/lib/task-check";
 
 const ComponentUploads = () => {
-  const [file, setFile] = useState<File | null>(null);
+  const { loading: isUploading, run } = useLoadingTasks([]);
+  const uploadInFlight = useRef(false);
+  const [file, setFile] = useState<File | null>(null); const [isDragging, setIsDragging] = useState(false); const dragDepth = useRef(0);
   const [serviceName, setServiceName] = useState<string>("");
   const [port, setPort] = useState<string>("");
   const [domain, setDomain] = useState<string>("");
   const [uploadType, setUploadType] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const toCheckFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    setFile(selectedFile || null);
+  const selectFile = (files: FileList | null) => {
+    if (uploadInFlight.current || !files?.length) return;
+    if (files.length > 1) {
+      toast.error("Please select one .zip file at a time.");
+      return;
+    }
+    const selectedFile = files[0];
+    if (!selectedFile.name.toLowerCase().endsWith(".zip")) {
+      toast.error("Please select a .zip file.");
+      return;
+    }
+    setFile(selectedFile);
+  };
+  const toCheckFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    selectFile(event.currentTarget.files);
+    event.currentTarget.value = "";
+  };
+  const onDragEnter = (event: React.DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    if (uploadInFlight.current || !event.dataTransfer.types.includes("Files")) return;
+    dragDepth.current += 1;
+    setIsDragging(true);
+  };
+  const onDragLeave = (event: React.DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setIsDragging(false);
+  };
+  const onDragOver = (event: React.DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = uploadInFlight.current ? "none" : "copy";
+  };
+  const onDrop = (event: React.DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    dragDepth.current = 0;
+    setIsDragging(false);
+    selectFile(event.dataTransfer.files);
   };
   const toCancelFile = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -61,61 +96,60 @@ const ComponentUploads = () => {
   };
   const uploadProject = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const toastID = "toast-upload";
-    toast.loading("Loading...", { id: toastID });
-    if (!file) {
-      toast.error("Error", { description: "Select File !", id: toastID });
-      return;
-    }
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("serviceName", serviceName);
-    formData.append("port", port);
-    formData.append("domain", domain);
-    formData.append("uploadType", uploadType);
-    const res = await fetch("/api/containers", { method: "POST", body: formData });
-    const data = await res.json();
-    if (!res.ok) {
-      console.log("API Error Response:", data);
-      toast.error("Upload Failed", {
-        description: data.error || "Failed to upload",
-        id: toastID,
+    if (uploadInFlight.current) return;
+    uploadInFlight.current = true;
+    try {
+      await run("upload", async () => {
+        const toastID = "toast-upload";
+        toast.loading("Loading...", { id: toastID });
+        if (!file) {
+          toast.error("Error", { description: "Select File !", id: toastID });
+          return;
+        }
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("serviceName", serviceName);
+        formData.append("port", port);
+        formData.append("domain", domain);
+        formData.append("uploadType", uploadType);
+        const res = await fetch("/api/containers", { method: "POST", body: formData });
+        const data = await res.json();
+        if (!res.ok) {
+          console.log("API Error Response:", data);
+          toast.error("Upload Failed", {
+            description: data.error || "Failed to upload",
+            id: toastID,
+          });
+          return;
+        }
+        toast.info("Uploading Container", {
+          id: toastID,
+          description: data.message,
+        });
+        setFile(null);
+        setServiceName("");
+        setPort("");
+        setDomain("");
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        await pollCeleryTask(
+          data.taskID,
+          `Deploy '${serviceName}' Successfully`,
+          `Deploy '${serviceName}' Failed `,
+        );
       });
-      return;
+    } catch {
+      toast.error("Upload failed", { id: "toast-upload", description: "Unable to complete the upload. Please try again." });
+    } finally {
+      uploadInFlight.current = false;
     }
-    toast.info("Uploading Container", {
-      id: toastID,
-      description: data.message,
-    });
-    setFile(null);
-    setServiceName("");
-    setPort("");
-    setDomain("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    const isSuccess = await pollCeleryTask(
-      data.taskID,
-      `Deploy '${serviceName}' Successfully`,
-      `Deploy '${serviceName}' Failed `,
-    );
   };
-  return (
-    <div className="max-w-screen min-h-full flex items-center justify-start flex-col">
-      <Breadcrumb className="w-full justify-center items-center mt-10 md:mt-2 md:px-9 md:py-5">
-        <BreadcrumbList className="w-full h-full text-md xl:text-lg font-[600] justify-center mb-4 sm:mb-0 md:justify-start items-center">
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/" className="text-gray-400">
-              Home
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage className="font-[600]">Uploads</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-      <div className="w-full min-h-[750px] p-4 md:px-8 overflow-hidden">
+  return <MotionSurface className="w-full">
+    <LoadingLine loading={isUploading} fixed label="Uploading project" />
+    <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8 [&_[data-slot=field-description]]:text-xs">
+      <SystemPageHeader title="Upload project" description="Deploy a new project or update an existing application." />
+      <Card className="w-full rounded-2xl border bg-card p-4 shadow-none sm:p-6">
         <form
           action="#"
           id="form-upload"
@@ -123,22 +157,30 @@ const ComponentUploads = () => {
           className="w-full h-full flex flex-col justify-start items-center"
         >
           <Field className="mb-4 md:mb-0">
-            <FieldLabel htmlFor="input-service-name">File</FieldLabel>
+            <FieldLabel htmlFor="file-upload">Project file</FieldLabel>
             <label
               htmlFor="file-upload"
-              className="flex items-center justify-center w-full h-15 md:h-65 border rounded-xl cursor-pointer group hover:bg-gray-50 dark:bg-input/30 transition duration-200"
+              onDragEnter={onDragEnter}
+              onDragLeave={onDragLeave}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+              className={cn(
+                "relative group flex w-full min-h-40 items-center justify-center rounded-xl border border-dashed p-5 focus-within:ring-2 focus-within:ring-ring motion-safe:transition-colors duration-200",
+                isUploading ? "cursor-not-allowed opacity-60" : "cursor-pointer",
+                isDragging ? "border-sky-500 bg-sky-500/10 ring-2 ring-sky-500/20" : "bg-muted/30 hover:bg-muted/60",
+              )}
             >
               {file && (
-                <div className="flex md:flex-col gap-2 md:gap-0 md:justify-center items-center">
-                  <CircleCheck className="md:w-18 md:h-18 md:mb-2 text-green-500" />
-                  <p className="font-[500] truncate max-w-15 sm:max-w-150 py-2 text-start md:text-center">
+                <div className="flex min-w-0 flex-col items-center justify-center gap-2">
+                  <CircleCheck className="size-10 text-emerald-500" />
+                  <p className="font-medium truncate max-w-48 sm:max-w-96 py-2 text-start md:text-center">
                     {file.name}
                   </p>
                   <p className="font-[400] text-gray-500 truncate max-w-50 flex items-center justify-center">
                     {(file.size / 1024 / 1024).toFixed(3)} MB
                   </p>
                   <button
-                    onClick={toCancelFile}
+                    onClick={toCancelFile} disabled={isUploading}
                     type="button"
                     className="text-red-400 hover:text-red-500 transition duration-200 flex items-center justify-center gap-1 underline md:mt-2 font-[500] cursor-pointer text-sm"
                   >
@@ -147,17 +189,16 @@ const ComponentUploads = () => {
                 </div>
               )}
               {!file && (
-                <div className="flex md:flex-col justify-center items-center gap-4 md:gap-0">
-                  <CloudUpload className="w-5 h-5 md:w-15 md:h-15 md:mb-2 text-gray-400 group-hover:text-sky-500 dark:group-hover:text-cyan-300 group-hover:-translate-y-2 transition duration-200" />
+                <div className="flex flex-col justify-center items-center gap-3">
+                  <CloudUpload className="size-10 text-muted-foreground group-hover:text-sky-500 dark:group-hover:text-cyan-300 motion-safe:transition-colors duration-200" />
                   <span className="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 text-center transition duration-200 text-xs md:text-sm md:px-5 md:mt-3">
-                    Click To Upload Project
+                    {isDragging ? "Drop your .zip file here" : "Drag & drop your project, or click to browse"}
                   </span>
                 </div>
               )}
               <input
                 id="file-upload"
-                type="file"
-                className="hidden"
+                type="file" accept=".zip,application/zip,application/x-zip-compressed" disabled={isUploading} aria-label="Select project zip file" className="sr-only"
                 onChange={toCheckFile}
                 ref={fileInputRef}
               />
@@ -175,7 +216,7 @@ const ComponentUploads = () => {
                 <Input
                   id="input-service-name"
                   type="text"
-                  className="h-15 shadow-none"
+                  className="h-11 shadow-none"
                   placeholder="Enter Your Service Name"
                   value={serviceName}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -199,7 +240,7 @@ const ComponentUploads = () => {
                 <Input
                   id="input-port"
                   type="text"
-                  className="h-15 shadow-none"
+                  className="h-11 shadow-none"
                   placeholder="Enter Port Number"
                   value={port}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,7 +261,7 @@ const ComponentUploads = () => {
             <div>
               <Field className="mb-4 md:mb-0">
                 <FieldLabel htmlFor="input-group-url">Domain Name</FieldLabel>
-                <InputGroup className="h-15 shadow-none">
+                <InputGroup className="h-11 shadow-none">
                   <InputGroupInput
                     id="input-group-url"
                     placeholder="example"
@@ -266,7 +307,7 @@ const ComponentUploads = () => {
                     }}
                   >
                     <SelectTrigger
-                      className="w-full !h-15 shadow-none"
+                      className="w-full !h-11 shadow-none"
                       id="input-deployment-action"
                     >
                       <SelectValue placeholder="Choose an option" />
@@ -321,19 +362,20 @@ const ComponentUploads = () => {
               </Field>
             </div>
           </div>
-          <div className="w-full mt-10 justify-center items-center flex">
+          <div className="w-full mt-6 flex justify-end">
             <Button
               form="form-upload"
+              disabled={isUploading}
               type="submit"
-              className="flex items-center w-1/1 xl:w-1/3 shadow-none h-15 rounded-xl bg-black/85 dark:bg-white dark:hover:bg-white/90 cursor-pointer group font-[600] text-md gap-3"
+              className="group h-11 w-full gap-2 rounded-lg sm:w-auto sm:px-6"
             >
-              <CloudUpload className="!w-7 !h-7 transition duration-200 group-hover:-translate-y-1" />
-              Upload & Deploy
+              <CloudUpload className="size-4 transition duration-200 motion-safe:group-hover:-translate-y-1" />
+              {isUploading ? <><LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden="true" /> Uploading...</> : "Upload & Deploy"}
             </Button>
           </div>
         </form>
-      </div>
+      </Card>
     </div>
-  );
+  </MotionSurface>;
 };
 export default ComponentUploads;
