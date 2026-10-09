@@ -9,7 +9,7 @@ export default function Footer() {
       <Reveal className="mx-auto max-w-7xl px-6 py-8 md:px-10">
         <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
           <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
-            <Link href="/" className="rounded-sm bg-gradient-to-r from-sky-600 via-cyan-500 to-violet-500 bg-clip-text text-xl font-bold tracking-tight text-transparent outline-none focus-visible:ring-2 focus-visible:ring-ring dark:from-sky-400 dark:via-cyan-300 dark:to-violet-400">ADOCS</Link>
+            <Link href="/" className="rounded-sm bg-gradient-to-r from-sky-600 via-cyan-500 to-teal-500 bg-clip-text text-xl font-bold tracking-tight text-transparent outline-none focus-visible:ring-2 focus-visible:ring-ring dark:from-sky-400">ADOCS</Link>
             <span className="rounded-full border bg-background px-2.5 py-1 text-xs text-muted-foreground">2.1.0</span>
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground">Built with Docker, Next.js &amp; Flask.</p>

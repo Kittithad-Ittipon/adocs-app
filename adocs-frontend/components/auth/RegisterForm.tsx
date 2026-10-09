@@ -16,7 +16,7 @@ export default function RegisterForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [dbState, setDbState] = useState(false);
-  const { pending, error, submit } = useAuthRequest();
+  const { pending, submit } = useAuthRequest();
 
   async function toRegister(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,7 +42,6 @@ export default function RegisterForm() {
             <div className="space-y-2"><FieldLabel htmlFor="managed-database"><Database className="size-4" aria-hidden="true" /> Enable Managed Database</FieldLabel><FieldDescription id="database-description" className="text-xs">Create a database user and access phpMyAdmin with your username and password.</FieldDescription></div>
           </div>
         </FieldGroup>
-        <p role="alert" className="text-sm text-destructive">{error}</p>
         <Button type="submit" size="lg" disabled={pending} className="h-11 w-full">{pending ? <><LoaderCircle className="motion-safe:animate-spin" aria-hidden="true" /> Creating account...</> : <><UserPlus aria-hidden="true" /> Register</>}</Button>
       </form>
     </AuthFrame>

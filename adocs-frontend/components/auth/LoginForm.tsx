@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 export default function LoginForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const { pending, error, submit } = useAuthRequest();
+  const { pending, submit } = useAuthRequest();
 
   async function toLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -31,7 +31,6 @@ export default function LoginForm() {
           </Field>
           <PasswordField value={password} onChange={setPassword} disabled={pending} extra={<Button asChild variant="link" size="sm" className="h-auto p-0 text-xs"><Link href="/forgot">Forgot password?</Link></Button>} />
         </FieldGroup>
-        <p role="alert" className="text-sm text-destructive">{error}</p>
         <Button type="submit" size="lg" disabled={pending} className="h-11 w-full">{pending ? <><LoaderCircle className="motion-safe:animate-spin" aria-hidden="true" /> Signing in...</> : <>Login <ArrowRight aria-hidden="true" /></>}</Button>
       </form>
     </AuthFrame>

@@ -16,18 +16,16 @@ export default function PasswordField({ value, onChange, disabled, newPassword =
 }) {
   const [visible, setVisible] = useState(false);
   return (
-    <Field>
-      <div className="flex items-center justify-between gap-2">
-        <FieldLabel htmlFor="password"><LockKeyhole className="size-4" aria-hidden="true" /> {label}</FieldLabel>
-        {extra}
-      </div>
-      <div className="relative">
+    <Field className="grid grid-cols-[1fr_auto]">
+      <FieldLabel htmlFor="password" className="col-start-1 row-start-1"><LockKeyhole className="size-4" aria-hidden="true" /> {label}</FieldLabel>
+      <div className="relative col-span-2 row-start-2">
         <Input id="password" name="password" type={visible ? "text" : "password"} placeholder={newPassword ? "Create a password" : "Enter your password"} autoComplete={newPassword ? "new-password" : "current-password"} minLength={newPassword ? 8 : undefined} required value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} className="h-11 pr-12" />
         <Button type="button" variant="ghost" size="icon" disabled={disabled} onClick={() => setVisible((previous) => !previous)} aria-label={visible ? "Hide password" : "Show password"} aria-pressed={visible} aria-controls="password" className="absolute right-1 top-1 text-muted-foreground transition-colors active:translate-y-0">
           {visible ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
         </Button>
       </div>
-      {newPassword && <p className="text-xs text-muted-foreground">Use at least 8 characters.</p>}
+      {extra && <div className="col-start-2 row-start-1 flex justify-end">{extra}</div>}
+      {newPassword && <p className="col-span-2 text-xs text-muted-foreground">Use at least 8 characters.</p>}
     </Field>
   );
 }

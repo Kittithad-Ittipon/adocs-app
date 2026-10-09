@@ -9,19 +9,19 @@ import { ArrowRight, ArrowUpRight, Boxes, Braces, CodeXml, Database, Globe, Rock
 import Link from "next/link";
 
 const features = [
-  { title: "Deployment", description: "Deploy your applications quickly and seamlessly with automated workflows.", icon: Rocket, link: "https://hub.docker.com/" },
-  { title: "Docker Containers", description: "Run and manage isolated environments safely using Docker integration.", icon: Boxes, link: "https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04" },
-  { title: "Local DNS", description: "Easily map your internal services with custom local domain names.", icon: Globe, link: "https://technitium.com/dns/" },
-  { title: "Containers Management", description: "Take full control to start, stop, publish, or delete your containers.", icon: Settings, link: "https://docs.docker.com/reference/cli/docker/container/" },
+  { title: "Deployment", description: "Deploy your applications quickly and seamlessly with automated workflows.", icon: Rocket, iconColor: "text-sky-500", link: "https://hub.docker.com/" },
+  { title: "Docker Containers", description: "Run and manage isolated environments safely using Docker integration.", icon: Boxes, iconColor: "text-cyan-500", link: "https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-22-04" },
+  { title: "Local DNS", description: "Easily map your internal services with custom local domain names.", icon: Globe, iconColor: "text-teal-500", link: "https://technitium.com/dns/" },
+  { title: "Containers Management", description: "Take full control to start, stop, publish, or delete your containers.", icon: Settings, iconColor: "text-emerald-500", link: "https://docs.docker.com/reference/cli/docker/container/" },
 ];
 
 const stacks = [
-  { title: "HTML", description: "Jumpstart static websites with ready-to-deploy HTML, CSS, and JavaScript templates.", icon: CodeXml, link: "https://adocs-document.vercel.app/docs/html" },
-  { title: "Python", description: "Build and deploy Python web applications with ready-to-use Flask templates.", icon: Terminal, link: "https://adocs-document.vercel.app/docs/python/flask" },
-  { title: "PHP", description: "Optimized PHP and Laravel templates for dynamic applications.", icon: Braces, link: "https://adocs-document.vercel.app/docs/php/php" },
-  { title: "Node.js", description: "Node.js, Express, and Next.js templates for full-stack deployment.", icon: Server, link: "https://adocs-document.vercel.app/docs/nodejs/express" },
-  { title: "Databases", description: "Ready-made MySQL and PostgreSQL templates for instant database setups.", icon: Database, link: "https://adocs-document.vercel.app/docs/mysql" },
-  { title: "Management Tools", description: "Container applications to manage your system. Follow the docs to get started.", icon: Workflow, link: "https://adocs-document.vercel.app/docs/docker-app" },
+  { title: "HTML", description: "Jumpstart static websites with ready-to-deploy HTML, CSS, and JavaScript templates.", icon: CodeXml, iconColor: "text-sky-500", link: "https://adocs-document.vercel.app/docs/html" },
+  { title: "Python", description: "Build and deploy Python web applications with ready-to-use Flask templates.", icon: Terminal, iconColor: "text-cyan-500", link: "https://adocs-document.vercel.app/docs/python/flask" },
+  { title: "PHP", description: "Optimized PHP and Laravel templates for dynamic applications.", icon: Braces, iconColor: "text-teal-500", link: "https://adocs-document.vercel.app/docs/php/php" },
+  { title: "Node.js", description: "Node.js, Express, and Next.js templates for full-stack deployment.", icon: Server, iconColor: "text-emerald-500", link: "https://adocs-document.vercel.app/docs/nodejs/express" },
+  { title: "Databases", description: "Ready-made MySQL and PostgreSQL templates for instant database setups.", icon: Database, iconColor: "text-teal-500", link: "https://adocs-document.vercel.app/docs/mysql" },
+  { title: "Management Tools", description: "Container applications to manage your system. Follow the docs to get started.", icon: Workflow, iconColor: "text-cyan-500", link: "https://adocs-document.vercel.app/docs/docker-app" },
 ];
 
 export default function Main() {
@@ -56,11 +56,11 @@ export default function Main() {
           <p className="text-muted-foreground">Core tools for deploying applications and managing your local environment.</p>
         </Reveal>
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {features.map(({ title, description, icon: Icon, link }, index) => (
+          {features.map(({ title, description, icon: Icon, link, iconColor }, index) => (
             <Reveal key={title} delay={index * 0.06} className="h-full" liftOnHover>
               <Card className="group h-full transition-[border-color,box-shadow,background-color] duration-300 ease-out hover:border-sky-500/50 hover:shadow-xl hover:shadow-sky-500/10 motion-reduce:transition-none">
                 <CardHeader className="flex-1">
-                  <div className="mb-4 flex size-12 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-cyan-300"><Icon className="size-6" aria-hidden="true" /></div>
+                  <div className={`mb-4 flex size-12 items-center justify-center rounded-xl bg-muted/70 ${iconColor}`}><Icon className="size-6" aria-hidden="true" /></div>
                   <CardTitle className="text-lg">{title}</CardTitle>
                   <CardDescription>{description}</CardDescription>
                 </CardHeader>
@@ -82,11 +82,11 @@ export default function Main() {
             <p className="text-muted-foreground">Deploy a wide range of applications with our officially documented stacks.</p>
           </Reveal>
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {stacks.map(({ title, description, icon: Icon, link }, index) => (
+            {stacks.map(({ title, description, icon: Icon, link, iconColor }, index) => (
               <Reveal key={title} delay={(index % 3) * 0.06} className="h-full" liftOnHover>
                 <Card className="group h-full transition-[border-color,box-shadow,background-color] duration-300 ease-out hover:border-sky-500/50 hover:shadow-xl hover:shadow-sky-500/10 motion-reduce:transition-none">
                   <CardHeader className="flex-1">
-                    <Icon className="mb-4 size-8 text-sky-600 dark:text-cyan-300" aria-hidden="true" />
+                    <span className={`mb-4 flex size-12 items-center justify-center rounded-xl bg-muted/70 ${iconColor}`}><Icon className="size-6" aria-hidden="true" /></span>
                     <CardTitle className="text-xl">{title}</CardTitle>
                     <CardDescription>{description}</CardDescription>
                   </CardHeader>

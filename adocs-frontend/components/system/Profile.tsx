@@ -145,45 +145,71 @@ const ComponentProfile = () => {
   const capacity = limit > 0 ? Math.min(100, Math.round(used / limit * 100)) : 0;
   return (
     <LoadingSection loading={loading} layout="profile">
-      <div className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto w-full max-w-6xl space-y-4 p-4 sm:px-6 lg:py-5">
         <SystemPageHeader title="Profile" description="Your account, security and resources." />
-        <Card className="gap-0 overflow-hidden rounded-2xl shadow-none">
-          <CardContent className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-teal-500 text-xl font-semibold text-white">{allData.username?.slice(0, 2).toUpperCase() || "AD"}</span>
-            <div className="min-w-0 flex-1 space-y-2"><h2 className="break-all text-2xl font-semibold tracking-tight">{allData.username}</h2><p className="flex items-start gap-2 text-sm text-muted-foreground"><Mail className="mt-0.5 size-4 shrink-0" /><span className="break-all">{allData.email}</span></p></div>
+        <Card className="gap-0 rounded-2xl py-4 shadow-none">
+          <CardContent className="flex flex-wrap items-center gap-3 px-5">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-teal-500 text-base font-semibold text-white">{allData.username?.slice(0, 2).toUpperCase() || "AD"}</span>
+            <div className="min-w-0 flex-1 space-y-1">
+              <h2 className="break-all text-lg font-semibold tracking-tight">{allData.username}</h2>
+              <p className="flex items-start gap-2 text-xs text-muted-foreground"><Mail className="mt-0.5 size-3.5 shrink-0" /><span className="break-all">{allData.email}</span></p>
+            </div>
             <RecordStatus status={allData.role} tone="neutral" />
           </CardContent>
         </Card>
-        <div className="grid items-stretch gap-5 lg:grid-cols-2">
-          <Card className="rounded-2xl shadow-none">
-            <CardHeader><CardTitle className="flex items-center gap-2 text-base"><KeyRound className="size-4 text-sky-500" />Password & security</CardTitle><CardDescription className="text-xs">Changing your password also updates your connected database credentials.</CardDescription></CardHeader>
-            <CardContent>
-              <form onSubmit={toRePasswordProfile} className="space-y-5">
-                <Field><FieldLabel htmlFor="current-password">Current password</FieldLabel><Input id="current-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-10" required /></Field>
-                <Field><FieldLabel htmlFor="new-password">New password</FieldLabel><Input id="new-password" type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="h-10" required /><FieldDescription className="text-xs">Choose a strong password for your account.</FieldDescription></Field>
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <Card className="min-w-0 gap-4 rounded-2xl py-5 shadow-none">
+            <CardHeader className="gap-1.5 px-5">
+              <CardTitle className="flex items-center gap-2 text-base"><KeyRound className="size-4 text-sky-500" />Password & security</CardTitle>
+              <CardDescription className="text-xs">Changing your password also updates your connected database credentials.</CardDescription>
+            </CardHeader>
+            <CardContent className="px-5">
+              <form onSubmit={toRePasswordProfile} className="space-y-4">
+                <Field className="gap-2"><FieldLabel htmlFor="current-password">Current password</FieldLabel><Input id="current-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-10" required /></Field>
+                <Field className="gap-2"><FieldLabel htmlFor="new-password">New password</FieldLabel><Input id="new-password" type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="h-10" required /><FieldDescription className="text-xs">Choose a strong password for your account.</FieldDescription></Field>
                 <div className="flex justify-end"><Button type="submit"><KeyRound />Update password</Button></div>
               </form>
             </CardContent>
           </Card>
-          <div className="flex flex-col gap-5 lg:[&>div]:flex-1">
-            <Card className="rounded-2xl shadow-none">
-              <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Box className="size-4 text-violet-500" />Container capacity</CardTitle><CardDescription className="text-xs">Resources available to your account.</CardDescription></CardHeader>
-              <CardContent className="space-y-4"><div className="flex items-end justify-between"><p className="text-3xl font-semibold tabular-nums">{used}<span className="ml-2 text-base font-normal text-muted-foreground">/ {limit}</span></p><span className="text-xs text-muted-foreground">{capacity}% used</span></div><Progress value={capacity} aria-label="Container capacity used" className="h-2" /><p className="text-xs text-muted-foreground">{Math.max(0, limit - used)} containers available</p></CardContent>
+          <div className="min-w-0 space-y-4">
+            <Card className="gap-3 rounded-2xl py-4 shadow-none">
+              <CardHeader className="flex flex-row items-center justify-between gap-4 px-5">
+                <div className="min-w-0 space-y-1.5">
+                  <CardTitle className="flex items-center gap-2 text-base"><Box className="size-4 shrink-0 text-cyan-500" />Container capacity</CardTitle>
+                  <CardDescription className="text-xs">Resources available to your account.</CardDescription>
+                </div>
+                <p className="shrink-0 text-3xl font-semibold tabular-nums">{used}<span className="ml-1.5 text-sm font-normal text-muted-foreground">/ {limit}</span></p>
+              </CardHeader>
+              <CardContent className="space-y-2 px-5">
+                <Progress value={capacity} aria-label="Container capacity used" className="h-2" />
+                <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground"><span>{capacity}% used</span><span>{Math.max(0, limit - used)} containers available</span></div>
+              </CardContent>
             </Card>
-            <Card className="rounded-2xl shadow-none">
-              <CardHeader><div className="flex items-center justify-between gap-3"><CardTitle className="flex items-center gap-2 text-base"><Database className="size-4 text-teal-500" />Database</CardTitle><RecordStatus status={allData.db ? "Connected" : "Not connected"} /></div><CardDescription className="text-xs">{allData.db ? "Your database account is ready to use." : "Request database access for your projects."}</CardDescription></CardHeader>
-              <CardFooter>{allData.db ? <Button asChild variant="outline"><a href="https://pma.addp.site" target="_blank" rel="noopener noreferrer">Open phpMyAdmin<ArrowUpRight /></a></Button> : <Button variant="outline" onClick={toRequestDatabase}><Database />Request access</Button>}</CardFooter>
-            </Card>
+            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+              <Card className="min-w-0 gap-4 rounded-2xl py-4 shadow-none">
+                <CardHeader className="gap-2 px-5">
+                  <CardTitle className="flex items-center gap-2 text-base"><Database className="size-4 text-teal-500" />Database</CardTitle>
+                  <div><RecordStatus status={allData.db ? "Connected" : "Not connected"} /></div>
+                  <CardDescription className="text-xs">{allData.db ? "Your database account is ready to use." : "Request database access for your projects."}</CardDescription>
+                </CardHeader>
+                <CardFooter className="mt-auto px-5">{allData.db ? <Button asChild variant="outline" size="sm" className="w-full"><a href="https://pma.addp.site" target="_blank" rel="noopener noreferrer">Open phpMyAdmin<ArrowUpRight /></a></Button> : <Button variant="outline" size="sm" className="w-full" onClick={toRequestDatabase}><Database />Request access</Button>}</CardFooter>
+              </Card>
+              <Card className="min-w-0 gap-3 rounded-2xl border-destructive/20 py-4 shadow-none">
+                <CardHeader className="gap-2 px-5">
+                  <CardTitle className="flex items-center gap-2 text-base"><Trash2 className="size-4 text-destructive" />Delete account</CardTitle>
+                  <CardDescription className="text-xs">Permanently delete your account, containers, domains and associated data.</CardDescription>
+                </CardHeader>
+                <CardFooter className="mt-auto flex-col items-stretch gap-3 px-5">
+                  <p className="text-xs text-muted-foreground">{allData.role === "admin" ? "Administrator accounts cannot be deleted here." : "This action cannot be undone."}</p>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild><Button variant="destructive" size="sm" className="w-full" disabled={allData.role === "admin"}><Trash2 />Delete account</Button></AlertDialogTrigger>
+                    <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete your account?</AlertDialogTitle><AlertDialogDescription>This permanently removes your account and all associated containers, domains and data. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={toDeleteUser}>Delete account</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                  </AlertDialog>
+                </CardFooter>
+              </Card>
+            </div>
           </div>
         </div>
-        <Card className="gap-4 rounded-2xl border-destructive/20 shadow-none">
-          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Trash2 className="size-4 text-destructive" />Delete account</CardTitle><CardDescription className="text-xs">Permanently delete your account, containers, domains and associated data.</CardDescription></CardHeader>
-          <CardFooter className="flex-wrap justify-between gap-3"><p className="text-xs text-muted-foreground">{allData.role === "admin" ? "Administrator accounts cannot be deleted here." : "This action cannot be undone."}</p>
-            <AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" disabled={allData.role === "admin"}><Trash2 />Delete account</Button></AlertDialogTrigger>
-              <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete your account?</AlertDialogTitle><AlertDialogDescription>This permanently removes your account and all associated containers, domains and data. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={toDeleteUser}>Delete account</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-            </AlertDialog>
-          </CardFooter>
-        </Card>
       </div>
     </LoadingSection>
   );

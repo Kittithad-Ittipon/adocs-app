@@ -65,7 +65,7 @@ function ContainerTable({ containers }: { containers: Container[] }) {
               <TableCell className="px-3 lg:px-4">
                 <div className="flex min-w-0 items-center gap-2"><span className="hidden size-7 shrink-0 lg:flex items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground" aria-hidden="true">{container.owner?.slice(0, 2).toUpperCase() || <User className="size-3" />}</span><span className="min-w-0 flex-1 truncate text-sm" title={container.owner}>{container.owner || "-"}</span></div>
               </TableCell>
-              <TableCell className="whitespace-normal break-words px-3 text-xs leading-relaxed tabular-nums text-muted-foreground lg:px-4">{container.upDateTime || "-"}</TableCell>
+              <TableCell className="whitespace-normal break-words px-3 text-[11px] leading-relaxed tabular-nums text-muted-foreground lg:px-4">{container.upDateTime || "-"}</TableCell>
               <TableCell className="px-2 lg:px-3 [&>span]:px-2 [&>span]:text-[11px]"><Status status={container.status} /></TableCell>
             </TableRow>
           ))}
@@ -104,12 +104,12 @@ function ContainerCards({ containers }: { containers: Container[] }) {
                   </div>
                   <div className="min-w-0">
                     <dt className="mb-2 text-[11px] font-medium text-muted-foreground">Image</dt>
-                    <dd className="flex min-w-0 items-start gap-1.5 rounded-lg bg-muted/50 px-2 py-1.5"><FileBox className="mt-0.5 size-3.5 shrink-0 text-violet-500" aria-hidden="true" /><span className="break-all font-mono text-xs leading-relaxed text-muted-foreground">{container.image || "-"}</span></dd>
+                    <dd className="flex min-w-0 items-start gap-1.5 rounded-lg bg-muted/50 px-2 py-1.5"><FileBox className="mt-0.5 size-3.5 shrink-0 text-violet-500" aria-hidden="true" /><span className="break-all text-xs leading-relaxed text-muted-foreground">{container.image || "-"}</span></dd>
                   </div>
                 </dl>
               </CardContent>
               <CardFooter className="mt-auto justify-between gap-3 border-t px-5 pb-0 pt-4">
-                <div className="flex min-w-0 items-start gap-2 text-muted-foreground"><Clock className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" /><div className="min-w-0"><p className="text-[10px]">Updated</p><p className="mt-0.5 break-words text-xs leading-relaxed">{container.upDateTime || "-"}</p></div></div>
+                <div className="flex min-w-0 items-start gap-2 text-muted-foreground"><Clock className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" /><div className="min-w-0"><p className="text-[10px]">Updated</p><p className="mt-0.5 break-words text-[11px] leading-snug">{container.upDateTime || "-"}</p></div></div>
               </CardFooter>
             </Card>
           </Reveal>

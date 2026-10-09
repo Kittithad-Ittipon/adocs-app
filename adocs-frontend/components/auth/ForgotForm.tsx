@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 
 export default function ForgotForm() {
   const [username, setUsername] = useState("");
-  const { pending, error, submit } = useAuthRequest();
+  const { pending, submit } = useAuthRequest();
 
   async function toForgot(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -27,7 +27,6 @@ export default function ForgotForm() {
           <Input id="username" name="username" required autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="Enter your username or email" value={username} onChange={(event) => setUsername(event.target.value)} disabled={pending} aria-describedby="otp-description" className="h-11" />
           <FieldDescription id="otp-description" className="text-xs">We&apos;ll send an OTP to the email address on your account.</FieldDescription>
         </Field>
-        <p role="alert" className="text-sm text-destructive">{error}</p>
         <Button type="submit" size="lg" disabled={pending} className="h-11 w-full">{pending ? <><LoaderCircle className="motion-safe:animate-spin" aria-hidden="true" /> Sending code...</> : <>Send OTP <Send aria-hidden="true" /></>}</Button>
       </form>
     </AuthFrame>
