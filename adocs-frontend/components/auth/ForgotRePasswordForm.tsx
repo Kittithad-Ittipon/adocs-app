@@ -1,6 +1,7 @@
 "use client";
 
 import { LoaderCircle, Mail, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import AuthFrame from "@/components/auth/AuthFrame";
@@ -23,7 +24,7 @@ export default function ForgotRePasswordForm() {
   }
 
   return (
-    <AuthFrame loading={pending} label="Password reset">
+    <AuthFrame loading={pending} label="Password reset" footer={<Button asChild variant="link" size="sm"><Link href="/register">Register</Link></Button>}>
       <form onSubmit={toReset} aria-busy={pending} className="space-y-6">
         <FieldGroup className="gap-5">
           <Field>
