@@ -1,11 +1,12 @@
 # 1. Standard Library Imports (Python built-in modules)
 import os
-import random
+import secrets
 import shutil
 import subprocess
 import time
 import zipfile
 from datetime import timedelta
+from uuid import uuid4
 
 # 2. External Library Imports (pip install packages)
 
@@ -14,7 +15,7 @@ from flask import Flask, jsonify, request, render_template
 from werkzeug.utils import secure_filename
 
 # 2.2 Security and Authentication
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt, verify_jwt_in_request
+from flask_jwt_extended import JWTManager, create_access_token, decode_token, jwt_required, get_jwt_identity, get_jwt, verify_jwt_in_request
 from flask_jwt_extended.exceptions import JWTExtendedException
 from flask_bcrypt import Bcrypt
 from flask_limiter import Limiter
@@ -35,6 +36,7 @@ from celery.result import AsyncResult
 
 # 3. Local Application Imports (file from the same project)
 from tasks import celery_app
+from sessions import OTP_RESEND_COOLDOWN, otp_retry_after, register_sessions, token_hash, utcnow
 
 # Load environment variables from .env file
 load_dotenv()
@@ -104,6 +106,8 @@ limiter = Limiter(
 # Function to get a database connection from the pool
 def get_db_connection():
     return POOL.connection()
+
+session_store = register_sessions(app, jwt, get_db_connection)
 
 # Function to get NPM token
 def get_npm_token():
@@ -385,11 +389,14 @@ def login():
         cursor = conn.cursor()
 
         cursor.execute(
-            "SELECT * FROM users WHERE email=%s OR username=%s", (username, username))
+            "SELECT * FROM users WHERE email=%s OR username=%s FOR UPDATE", (username, username))
         user_data = cursor.fetchone()
 
         if not user_data:
             return jsonify({"error": "Invalid Username Or Email Or Password !"}), 401
+
+        if user_data.get("status") == "DELETING":
+            return jsonify({"error": "Account is being deleted"}), 403
 
         if user_data:
             username_add_token = user_data["username"]
@@ -402,8 +409,11 @@ def login():
             token = create_access_token(
                 identity=str(user_id),
                 additional_claims={
-                    "username": username_add_token, "role": role},
+                    "username": username_add_token, "role": role,
+                    "purpose": "login", "sid": str(uuid4())},
             )
+            session_store.create(cursor, decode_token(token), user_id)
+            conn.commit()
 
             return (
                 jsonify(
@@ -415,13 +425,47 @@ def login():
             return jsonify({"error": "Login Failed Invalid Username or Password"}), 401
 
     except Exception as e:
+        if conn:
+            conn.rollback()
         print("Error:", e)
         return jsonify({"error": str(e)}), 500
     finally:
         if conn:
             conn.close()
 
-# API Endpoint for Forgot Password Functionality with OTP Generation, Email Sending, and JWT Token Creation for OTP Validation
+def recovery_cooldown(cursor, user_id):
+    cursor.execute(
+        "SELECT created_at FROM sessions WHERE user_id = %s AND kind = 'otp' ORDER BY created_at DESC LIMIT 1",
+        (user_id,),
+    )
+    latest = cursor.fetchone()
+    retry_after = otp_retry_after(latest) if latest else 0
+    if retry_after:
+        return jsonify({"error": "Please wait before requesting another code.",
+                        "retry_after": retry_after}), 429, {"Retry-After": str(retry_after)}
+    return None
+
+
+def send_recovery_code(cursor, user_data):
+    # The caller holds the user row lock throughout delivery and replacement.
+    otp = f"{secrets.randbelow(1000000):06d}"
+    token = create_access_token(
+        identity=str(user_data["id"]),
+        additional_claims={"purpose": "otp", "sid": str(uuid4())},
+        expires_delta=timedelta(minutes=5),
+    )
+    otp_hash = bcrypt.generate_password_hash(otp).decode()
+    mail_otp = Message(subject="Adocs", recipients=[user_data["email"]])
+    mail_otp.html = render_template(
+        "/mail.html", otp=otp, username=user_data["username"], year=utcnow().year)
+    mail.send(mail_otp)
+    # A delivery failure leaves the previous challenge usable.
+    session_store.revoke_user(cursor, user_data["id"], kind="otp")
+    session_store.create(cursor, decode_token(token), user_data["id"], otp_hash)
+    return token
+
+
+# Request a password recovery code using a username or email.
 @app.route("/api/auth/forgot", methods=["POST"])
 @limiter.limit("3 per hour")
 def forgot():
@@ -433,67 +477,122 @@ def forgot():
         cursor = conn.cursor()
 
         cursor.execute(
-            "SELECT * FROM users WHERE username = %s OR email = %s", (username, username))
+            "SELECT * FROM users WHERE username = %s OR email = %s FOR UPDATE", (username, username))
         user_data = cursor.fetchone()
         if not user_data:
             return jsonify({"error": "Username Or Email Not Found"}), 401
 
-        email = user_data["email"]
-        username_send = user_data["username"]
-        otp = f"{random.randint(0, 9)}{random.randint(0, 9)}{random.randint(0, 9)}{random.randint(0, 9)}{random.randint(0, 9)}{random.randint(0, 9)}"
-        token = create_access_token(
-            identity=user_data["username"],
-            additional_claims={
-                "otp": otp,
-                "role": user_data["role"],
-                "email": user_data["email"],
-            },
-            expires_delta=timedelta(minutes=5),
-        )
-        mail_otp = Message(
-            subject="Adocs",
-            recipients=[f"{email}"],
-        )
-        mail_otp.html = render_template(
-            "/mail.html", otp=otp, username=username_send)
-
-        mail.send(mail_otp)
-        return jsonify({"message": "Get OTP on Your Mail", "token": token}), 200
+        if user_data.get("status") == "DELETING":
+            return jsonify({"error": "Account is being deleted"}), 403
+        cooldown = recovery_cooldown(cursor, user_data["id"])
+        if cooldown:
+            return cooldown
+        token = send_recovery_code(cursor, user_data)
+        conn.commit()
+        return jsonify({"message": "Check your email for your OTP.", "token": token,
+                        "retry_after": OTP_RESEND_COOLDOWN}), 200
 
     except Exception as e:
+        if conn:
+            conn.rollback()
         print("Fetch Data Error:", e)
         return jsonify({"error": "Failed to fetch data"}), 500
     finally:
         if conn:
             conn.close()
 
+
+@app.route("/api/auth/resend", methods=["POST"])
+@limiter.limit("3 per hour")
+@jwt_required()
+def resend_otp():
+    conn = None
+    try:
+        payload = get_jwt()
+        if payload.get("purpose") != "otp":
+            return jsonify({"error": "Invalid recovery session"}), 403
+        user_id = get_jwt_identity()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE id = %s FOR UPDATE", (user_id,))
+        user_data = cursor.fetchone()
+        if not user_data or user_data.get("status") == "DELETING":
+            return jsonify({"error": "Account unavailable"}), 401
+        # Recheck after acquiring the lock: a concurrent resend/reset may have consumed it.
+        cursor.execute(
+            """SELECT id FROM sessions WHERE id = %s AND token_hash = %s AND user_id = %s
+               AND kind = 'otp' AND revoked_at IS NULL AND expires_at > %s FOR UPDATE""",
+            (payload["sid"], token_hash(payload), user_id, utcnow()),
+        )
+        if not cursor.fetchone():
+            return jsonify({"error": "Recovery session expired. Please request a new code."}), 401
+        cooldown = recovery_cooldown(cursor, user_id)
+        if cooldown:
+            return cooldown
+        token = send_recovery_code(cursor, user_data)
+        conn.commit()
+        return jsonify({"message": "A new OTP has been sent. Use the latest code within 5 minutes.",
+                        "token": token, "retry_after": OTP_RESEND_COOLDOWN}), 200
+    except Exception:
+        if conn:
+            conn.rollback()
+        app.logger.exception("Unable to resend recovery code")
+        return jsonify({"error": "Unable to send a new code. Please try again."}), 500
+    finally:
+        if conn:
+            conn.close()
+
 # API Endpoint for Resetting Password Using OTP with JWT Validation, Optional Database Password Update
 @app.route("/api/auth/reset", methods=["PATCH"])
-@limiter.limit("3 per hour")
+@limiter.limit("10 per minute")
 @jwt_required()
 def forgot_repassword():
     conn = None
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
         data_token = get_jwt()
-        username_token = get_jwt_identity()
-        otp_token = data_token["otp"]
-        otp = data["otpValue"]
-        password = data["password"]
+        if data_token.get("purpose") != "otp":
+            return jsonify({"error": "Invalid recovery session"}), 403
+        user_id = get_jwt_identity()
+        otp = data.get("otpValue", "")
+        password = data.get("password")
+        if not isinstance(otp, str) or len(otp) != 6 or not otp.isascii() or not otp.isdigit():
+            return jsonify({"error": "OTP must be 6 digits"}), 400
+        if not isinstance(password, str) or not password:
+            return jsonify({"error": "Password is required"}), 400
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE username = %s",
-                       (username_token,))
+        cursor.execute("SELECT * FROM users WHERE id = %s FOR UPDATE", (user_id,))
         user_data = cursor.fetchone()
+        if not user_data or user_data.get("status") == "DELETING":
+            return jsonify({"error": "Account unavailable"}), 401
+        cursor.execute(
+            """SELECT * FROM sessions WHERE id = %s AND token_hash = %s AND user_id = %s
+               AND kind = 'otp' AND revoked_at IS NULL AND expires_at > %s FOR UPDATE""",
+            (data_token["sid"], token_hash(data_token), user_id, utcnow()),
+        )
+        challenge = cursor.fetchone()
+        if not challenge or not challenge["otp_hash"] or challenge["otp_attempts"] >= 5:
+            return jsonify({"error": "OTP expired or already used. Please request a new code."}), 401
+        if not bcrypt.check_password_hash(challenge["otp_hash"], otp):
+            attempts = challenge["otp_attempts"] + 1
+            cursor.execute(
+                "UPDATE sessions SET otp_attempts = %s, revoked_at = %s, otp_hash = %s WHERE id = %s",
+                (attempts, utcnow() if attempts >= 5 else None,
+                 None if attempts >= 5 else challenge["otp_hash"], challenge["id"]),
+            )
+            conn.commit()
+            return jsonify({"error": "Wrong OTP. Please check your email."}), 401
 
-        if otp_token != otp:
-            return jsonify({"error": "Wrong OTP Please Check Your Mail!"}), 401
-
+        username_token = user_data["username"]
         hashed = bcrypt.generate_password_hash(password).decode()
         cursor.execute(
             "UPDATE users SET password = %s WHERE username = %s",
             (hashed, username_token),
         )
+        # Consume all challenges and revoke existing logins in the same transaction.
+        session_store.revoke_user(cursor, user_id)
+        conn.commit()
 
         if user_data["db"] == 1:
             cursor.execute("ALTER USER %s@'%%' IDENTIFIED BY %s",
@@ -504,6 +603,8 @@ def forgot_repassword():
         return jsonify({"message": "Change Password Success"}), 200
 
     except Exception as e:
+        if conn:
+            conn.rollback()
         print("Fetch Data Error:", e)
         return jsonify({"error": "Failed to fetch data"}), 500
     finally:
@@ -1303,6 +1404,7 @@ def deluser(userName):
         
         full_log = "\n".join(all_docker_logs)
         cursor.execute("UPDATE users SET status = 'DELETING' WHERE username = %s", (username,))
+        session_store.revoke_user(cursor, user_data["id"])
         cursor.execute("INSERT INTO activity_logs (user_id, username, container_name, action, status, details) VALUES (%s, %s, %s, %s, %s, %s)", (id_users, username_token, f"ACCOUNT: {username}", "DELETE", "PENDING", full_log))
         conn.commit()
 

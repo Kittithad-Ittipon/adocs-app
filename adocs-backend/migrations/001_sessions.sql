@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS sessions (
+    id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    kind VARCHAR(16) NOT NULL,
+    token_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    otp_hash VARCHAR(255) NULL,
+    otp_attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    ip_address VARCHAR(45) NOT NULL,
+    user_agent VARCHAR(512) NOT NULL,
+    browser VARCHAR(128) NOT NULL,
+    device VARCHAR(128) NOT NULL,
+    os VARCHAR(128) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    last_seen_at DATETIME(6) NOT NULL,
+    expires_at DATETIME(6) NOT NULL,
+    revoked_at DATETIME(6) NULL,
+    revoked_by BIGINT UNSIGNED NULL,
+    UNIQUE KEY sessions_token_hash (token_hash),
+    KEY sessions_user_kind (user_id, kind, revoked_at, expires_at),
+    KEY sessions_active (kind, revoked_at, expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

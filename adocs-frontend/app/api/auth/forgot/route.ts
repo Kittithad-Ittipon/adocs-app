@@ -13,14 +13,18 @@ export async function POST(request: Request) {
     const { username } = result.data;
     const flaskRes = await fetch(`${process.env.NEXTAPI_URL}/auth/forgot`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-Forwarded-For": clientIP },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forwarded-For": clientIP,
+        "User-Agent": request.headers.get("user-agent") || "",
+      },
       body: JSON.stringify({ username }),
     });
     const flaskData = await flaskRes.json();
     if (!flaskRes.ok) {
       return NextResponse.json(flaskData, { status: flaskRes.status });
     }
-    const response = NextResponse.json(flaskData, { status: flaskRes.status });
+    const response = NextResponse.json({ message: flaskData.message }, { status: flaskRes.status });
     response.cookies.set({
       name: "tokenForgot",
       value: flaskData.token,
@@ -32,7 +36,7 @@ export async function POST(request: Request) {
     });
     response.cookies.delete("token");
     return response;
-  } catch (error) {
+  } catch {
     return Response.json({ error: "Server Error" }, { status: 500 });
   }
 }

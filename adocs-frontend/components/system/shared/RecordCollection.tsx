@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { Fragment, useState, useSyncExternalStore, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Inbox, LayoutGrid, List, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,13 +25,15 @@ export type RecordColumn<T> = {
   className?: string;
 };
 
-export default function RecordCollection<T>({ title, records, columns, recordKey, renderCard, headerContent }: {
+export default function RecordCollection<T>({ title, records, columns, recordKey, renderCard, renderDetails, headerContent, tableClassName }: {
   title: string;
   headerContent?: ReactNode;
   records: T[];
   columns: RecordColumn<T>[];
   recordKey: (record: T, index: number) => string;
   renderCard: (record: T, index: number) => ReactNode;
+  renderDetails?: (record: T, index: number) => ReactNode;
+  tableClassName?: string;
 }) {
   const mobile = useSyncExternalStore(subscribe, mobileSnapshot, serverSnapshot);
   const [selectedView, setSelectedView] = useState<"table" | "cards" | null>(null);
@@ -57,16 +59,22 @@ export default function RecordCollection<T>({ title, records, columns, recordKey
           <motion.div key={view} initial={reducedMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reducedMotion ? 0 : 0.15 }}>
             {view === "table" ? (
               <div className="overflow-hidden rounded-xl border bg-card">
-                <Table>
+                <Table className={tableClassName}>
                   <TableHeader className="bg-muted/40"><TableRow className="hover:bg-transparent">
-                    {columns.map(({ id, label, icon: Icon, className }) => <TableHead key={id} className={cn("h-12 whitespace-nowrap px-4 text-xs font-medium", className)}><span className="inline-flex items-center gap-2">{Icon && <Icon className="size-3.5" aria-hidden="true" />}{label}</span></TableHead>)}
+                    {columns.map(({ id, label, icon: Icon, className }) => <TableHead key={id} className={cn("h-12 whitespace-nowrap px-4 text-xs font-medium", className)}><span className="inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-1">{Icon && <Icon className="size-3.5 shrink-0" aria-hidden="true" />}{label}</span></TableHead>)}
                   </TableRow></TableHeader>
-                  <TableBody>{records.map((record, index) => <TableRow key={recordKey(record, index)} className="motion-safe:transition-colors hover:bg-muted/30">{columns.map((column) => <TableCell key={column.id} className={cn("px-4 py-4 text-sm", column.className)}>{column.cell(record, index)}</TableCell>)}</TableRow>)}</TableBody>
+                  <TableBody>{records.map((record, index) => {
+                    const details = renderDetails?.(record, index);
+                    return <Fragment key={recordKey(record, index)}>
+                      <TableRow className="motion-safe:transition-colors hover:bg-muted/30">{columns.map((column) => <TableCell key={column.id} className={cn("px-4 py-4 text-sm", column.className)}>{column.cell(record, index)}</TableCell>)}</TableRow>
+                      {details && <TableRow className="bg-muted/20 hover:bg-muted/20"><TableCell colSpan={columns.length} className="p-4">{details}</TableCell></TableRow>}
+                    </Fragment>;
+                  })}</TableBody>
                 </Table>
               </div>
             ) : (
-              <div className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {records.map((record, index) => <Reveal key={recordKey(record, index)} className="h-full" delay={(index % 3) * 0.04} liftOnHover>{renderCard(record, index)}</Reveal>)}
+              <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {records.map((record, index) => <Reveal key={recordKey(record, index)} className="h-full min-w-0" delay={(index % 3) * 0.04} liftOnHover>{renderCard(record, index)}</Reveal>)}
               </div>
             )}
           </motion.div>

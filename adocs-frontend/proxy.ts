@@ -13,11 +13,44 @@ export async function proxy(request: NextRequest) {
         token,
         new TextEncoder().encode(process.env.JWT_SECRET_KEY),
       );
+      if (payload.purpose !== "login") throw new Error("Invalid login token");
       role = payload.role as string;
     } catch {
       const response = NextResponse.redirect(new URL("/login", request.url));
       response.cookies.delete("token");
       return response;
+    }
+    try {
+      const session = await fetch(`${process.env.NEXTAPI_URL}/auth/session`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (session.status === 401 || session.status === 422) {
+        const response = NextResponse.redirect(new URL("/login", request.url));
+        response.cookies.delete("token");
+        return response;
+      }
+      if (!session.ok) return new NextResponse("Unable to verify your session. Please try again.", { status: 503 });
+    } catch {
+      return new NextResponse("Unable to verify your session. Please try again.", { status: 503 });
+    }
+  }
+  if (!token && tokenForgot) {
+    try {
+      const session = await fetch(`${process.env.NEXTAPI_URL}/auth/otp-session`, {
+        headers: { Authorization: `Bearer ${tokenForgot}` },
+        cache: "no-store",
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (session.status === 401 || session.status === 422) {
+        const response = NextResponse.redirect(new URL("/forgot", request.url));
+        response.cookies.delete("tokenForgot");
+        return response;
+      }
+      if (!session.ok) return new NextResponse("Unable to verify your recovery code. Please try again.", { status: 503 });
+    } catch {
+      return new NextResponse("Unable to verify your recovery code. Please try again.", { status: 503 });
     }
   }
   if (!token && !tokenForgot) {
@@ -42,6 +75,7 @@ export async function proxy(request: NextRequest) {
       path.startsWith("/upload") ||
       path.startsWith("/profile") ||
       path.startsWith("/users-manage") ||
+      path.startsWith("/sessions") ||
       path.startsWith("/container-manage")
     ) {
       if (role !== "admin") {
@@ -79,6 +113,7 @@ export const config = {
     "/profile",
     "/upload",
     "/users-manage",
+    "/sessions/:path*",
     "/container-manage",
     "/users/:path*",
     "/login",

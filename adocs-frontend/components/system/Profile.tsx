@@ -157,22 +157,22 @@ const ComponentProfile = () => {
             <RecordStatus status={allData.role} tone="neutral" />
           </CardContent>
         </Card>
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <Card className="min-w-0 gap-4 rounded-2xl py-5 shadow-none">
+        <div className="grid items-stretch gap-4 lg:min-h-[32rem] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <Card className="h-full min-w-0 gap-6 rounded-2xl py-6 shadow-none">
             <CardHeader className="gap-1.5 px-5">
               <CardTitle className="flex items-center gap-2 text-base"><KeyRound className="size-4 text-sky-500" />Password & security</CardTitle>
               <CardDescription className="text-xs">Changing your password also updates your connected database credentials.</CardDescription>
             </CardHeader>
-            <CardContent className="px-5">
-              <form onSubmit={toRePasswordProfile} className="space-y-4">
-                <Field className="gap-2"><FieldLabel htmlFor="current-password">Current password</FieldLabel><Input id="current-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-10" required /></Field>
-                <Field className="gap-2"><FieldLabel htmlFor="new-password">New password</FieldLabel><Input id="new-password" type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="h-10" required /><FieldDescription className="text-xs">Choose a strong password for your account.</FieldDescription></Field>
-                <div className="flex justify-end"><Button type="submit"><KeyRound />Update password</Button></div>
+            <CardContent className="flex flex-1 flex-col px-5">
+              <form onSubmit={toRePasswordProfile} className="flex flex-1 flex-col gap-6">
+                <Field className="gap-3"><FieldLabel htmlFor="current-password">Current password</FieldLabel><Input id="current-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} className="h-11" required /></Field>
+                <Field className="gap-3"><FieldLabel htmlFor="new-password">New password</FieldLabel><Input id="new-password" type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="h-11" required /><FieldDescription className="text-xs">Choose a strong password for your account.</FieldDescription></Field>
+                <div className="mt-auto flex justify-end border-t pt-5"><Button type="submit"><KeyRound />Update password</Button></div>
               </form>
             </CardContent>
           </Card>
-          <div className="min-w-0 space-y-4">
-            <Card className="gap-3 rounded-2xl py-4 shadow-none">
+          <div className="grid min-w-0 gap-4 lg:grid-rows-2">
+            <Card className="h-full gap-4 rounded-2xl py-6 shadow-none">
               <CardHeader className="flex flex-row items-center justify-between gap-4 px-5">
                 <div className="min-w-0 space-y-1.5">
                   <CardTitle className="flex items-center gap-2 text-base"><Box className="size-4 shrink-0 text-cyan-500" />Container capacity</CardTitle>
@@ -180,13 +180,13 @@ const ComponentProfile = () => {
                 </div>
                 <p className="shrink-0 text-3xl font-semibold tabular-nums">{used}<span className="ml-1.5 text-sm font-normal text-muted-foreground">/ {limit}</span></p>
               </CardHeader>
-              <CardContent className="space-y-2 px-5">
+              <CardContent className="mt-auto space-y-3 px-5">
                 <Progress value={capacity} aria-label="Container capacity used" className="h-2" />
                 <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground"><span>{capacity}% used</span><span>{Math.max(0, limit - used)} containers available</span></div>
               </CardContent>
             </Card>
             <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-              <Card className="min-w-0 gap-4 rounded-2xl py-4 shadow-none">
+              <Card className="h-full min-w-0 gap-4 rounded-2xl py-6 shadow-none">
                 <CardHeader className="gap-2 px-5">
                   <CardTitle className="flex items-center gap-2 text-base"><Database className="size-4 text-teal-500" />Database</CardTitle>
                   <div><RecordStatus status={allData.db ? "Connected" : "Not connected"} /></div>
@@ -194,7 +194,7 @@ const ComponentProfile = () => {
                 </CardHeader>
                 <CardFooter className="mt-auto px-5">{allData.db ? <Button asChild variant="outline" size="sm" className="w-full"><a href="https://pma.addp.site" target="_blank" rel="noopener noreferrer">Open phpMyAdmin<ArrowUpRight /></a></Button> : <Button variant="outline" size="sm" className="w-full" onClick={toRequestDatabase}><Database />Request access</Button>}</CardFooter>
               </Card>
-              <Card className="min-w-0 gap-3 rounded-2xl border-destructive/20 py-4 shadow-none">
+              <Card className="h-full min-w-0 gap-4 rounded-2xl border-destructive/20 py-6 shadow-none">
                 <CardHeader className="gap-2 px-5">
                   <CardTitle className="flex items-center gap-2 text-base"><Trash2 className="size-4 text-destructive" />Delete account</CardTitle>
                   <CardDescription className="text-xs">Permanently delete your account, containers, domains and associated data.</CardDescription>

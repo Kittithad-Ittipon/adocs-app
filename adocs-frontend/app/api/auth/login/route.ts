@@ -14,7 +14,11 @@ export async function POST(request: Request) {
     const { username, password } = result.data;
     const flaskRes = await fetch(`${process.env.NEXTAPI_URL}/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-Forwarded-For": clientIP },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forwarded-For": clientIP,
+        "User-Agent": request.headers.get("user-agent") || "",
+      },
       body: JSON.stringify({ username, password }),
     });
     const flaskData = await flaskRes.json();
@@ -45,7 +49,7 @@ export async function POST(request: Request) {
     });
     response.cookies.delete("tokenForgot");
     return response;
-  } catch (error) {
+  } catch {
     return Response.json({ error: "Server Error" }, { status: 500 });
   }
 }

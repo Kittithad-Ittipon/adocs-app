@@ -2,7 +2,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { LayoutGroup, motion, useReducedMotion } from "framer-motion"; import { useId } from "react";
 import { cn } from "@/lib/utils";
-import { Box, FileText, Home, LayoutDashboard, Rocket, Upload, UserCircle, Users } from "lucide-react";
+import { Box, FileText, Home, LayoutDashboard, Monitor, Rocket, Upload, UserCircle, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -14,6 +14,7 @@ export function systemMenu(role: SystemRole) {
     { label: "Upload", href: prefix + "/upload", icon: Upload, section: "Main" },
     { label: "Containers", href: prefix + "/container-manage", icon: Box, section: "Main" },
     ...(role === "admin" ? [{ label: "Users", href: "/users-manage", icon: Users, section: "Main" }] : []),
+    ...(role === "admin" ? [{ label: "Sessions", href: "/sessions", icon: Monitor, section: "Main" }] : []),
     { label: "Logs", href: prefix + "/logs", icon: FileText, section: "Main" },
     { label: "Profile", href: prefix + "/profile", icon: UserCircle, section: "Account" },
   ];

@@ -1,6 +1,7 @@
 "use client";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Topbar from "@/components/system/Topbar";
+import SessionMonitor from "@/components/system/shared/SessionMonitor";
 import SystemNavigation, { systemMenu, type SystemRole } from "@/components/system/shared/SystemNavigation";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -17,6 +18,7 @@ export default function SystemShell({ role, children }: { role: SystemRole; chil
   const page = systemMenu(role).find((item) => pathname === item.href || pathname.startsWith(item.href + "/"));
   return (
     <TooltipProvider>
+      <SessionMonitor />
       <div className="flex h-dvh w-full overflow-hidden bg-muted/20 font-sans text-foreground">
         <aside className={cn("hidden shrink-0 lg:block motion-safe:transition-[width] motion-safe:duration-200", collapsed ? "w-18" : "w-60")}>
           <SystemNavigation role={role} isCollapsed={collapsed} />
