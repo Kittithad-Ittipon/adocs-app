@@ -111,7 +111,7 @@ const UserDashboard = () => {
       value: "Read Docs",
       icon: FileText,
       iconColor: "text-emerald-500",
-      href: "https://adocs-document.vercel.app/docs",
+      href: "https://document.adocs.site/docs",
     },
   ];
 

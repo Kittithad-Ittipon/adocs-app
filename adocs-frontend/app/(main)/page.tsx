@@ -16,12 +16,12 @@ const features = [
 ];
 
 const stacks = [
-  { title: "HTML", description: "Jumpstart static websites with ready-to-deploy HTML, CSS, and JavaScript templates.", icon: CodeXml, iconColor: "text-sky-500", link: "https://adocs-document.vercel.app/docs/html" },
-  { title: "Python", description: "Build and deploy Python web applications with ready-to-use Flask templates.", icon: Terminal, iconColor: "text-cyan-500", link: "https://adocs-document.vercel.app/docs/python/flask" },
-  { title: "PHP", description: "Optimized PHP and Laravel templates for dynamic applications.", icon: Braces, iconColor: "text-teal-500", link: "https://adocs-document.vercel.app/docs/php/php" },
-  { title: "Node.js", description: "Node.js, Express, and Next.js templates for full-stack deployment.", icon: Server, iconColor: "text-emerald-500", link: "https://adocs-document.vercel.app/docs/nodejs/express" },
-  { title: "Databases", description: "Ready-made MySQL and PostgreSQL templates for instant database setups.", icon: Database, iconColor: "text-teal-500", link: "https://adocs-document.vercel.app/docs/mysql" },
-  { title: "Management Tools", description: "Container applications to manage your system. Follow the docs to get started.", icon: Workflow, iconColor: "text-cyan-500", link: "https://adocs-document.vercel.app/docs/docker-app" },
+  { title: "HTML", description: "Jumpstart static websites with ready-to-deploy HTML, CSS, and JavaScript templates.", icon: CodeXml, iconColor: "text-sky-500", link: "https://document.adocs.site/docs/html" },
+  { title: "Python", description: "Build and deploy Python web applications with ready-to-use Flask templates.", icon: Terminal, iconColor: "text-cyan-500", link: "https://document.adocs.site/docs/python/flask" },
+  { title: "PHP", description: "Optimized PHP and Laravel templates for dynamic applications.", icon: Braces, iconColor: "text-teal-500", link: "https://document.adocs.site/docs/php/php" },
+  { title: "Node.js", description: "Node.js, Express, and Next.js templates for full-stack deployment.", icon: Server, iconColor: "text-emerald-500", link: "https://document.adocs.site/docs/nodejs/express" },
+  { title: "Databases", description: "Ready-made MySQL and PostgreSQL templates for instant database setups.", icon: Database, iconColor: "text-teal-500", link: "https://document.adocs.site/docs/mysql" },
+  { title: "Management Tools", description: "Container applications to manage your system. Follow the docs to get started.", icon: Workflow, iconColor: "text-cyan-500", link: "https://document.adocs.site/docs/docker-app" },
 ];
 
 export default function Main() {
@@ -39,7 +39,7 @@ export default function Main() {
             <p className="max-w-lg text-base leading-relaxed text-white/85 md:text-lg">Manage containers, launch environments, and deploy websites through a user-friendly platform designed for developers.</p>
             <div className="flex flex-wrap gap-3">
               <Button asChild size="lg" className="h-12 bg-white px-6 text-black hover:bg-white/90">
-                <Link href="https://adocs-document.vercel.app">Get Started <ArrowUpRight aria-hidden="true" /></Link>
+                <Link href="https://document.adocs.site">Get Started <ArrowUpRight aria-hidden="true" /></Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="h-12 border-white/30 bg-black/20 px-6 text-white hover:bg-white/15 hover:text-white dark:bg-black/20">
                 <Link href="#features">Explore features <ArrowRight aria-hidden="true" /></Link>

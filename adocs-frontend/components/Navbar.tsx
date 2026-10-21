@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 const navigation = [
   { label: "Home", href: "/", icon: House, external: false },
-  { label: "Document", href: "https://adocs-document.vercel.app/docs", icon: BookOpenText, external: true },
+  { label: "Document", href: "https://document.adocs.site/docs", icon: BookOpenText, external: true },
   { label: "Containers", href: "/containers", icon: SquareActivity, external: false },
 ];
 
