@@ -19,7 +19,7 @@ export default function ContactUs() {
   }
 
   return (
-    <section aria-labelledby="contact-title" className="w-full border-y bg-muted/35 px-6 py-20 md:px-10">
+    <section aria-labelledby="contact-title" className="w-full border-y bg-muted/35 px-6 py-20 md:px-10 dark:bg-transparent">
       <Reveal className="mx-auto max-w-xl">
         <div className="mb-10 space-y-3 text-center">
           <h2 id="contact-title" className="text-3xl font-bold tracking-tight md:text-4xl">Contact Us</h2>

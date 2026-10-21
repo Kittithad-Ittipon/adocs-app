@@ -55,7 +55,6 @@ export default function Navbar() {
             <Button asChild variant="ghost" className="h-11 px-4"><Link href="/login"><LogIn aria-hidden="true" /> Login</Link></Button>
             <Button asChild className="h-11 px-5"><Link href="/register"><UserPlus aria-hidden="true" /> Register</Link></Button>
           </div>
-          <ThemeToggle />
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild><Button type="button" variant="outline" size="icon" className="size-[42px] xl:hidden" aria-label="Open navigation menu"><Menu className="size-6" aria-hidden="true" /></Button></SheetTrigger>
             <SheetContent className="w-[min(88vw,360px)] motion-reduce:transition-none" side="right">
@@ -81,6 +80,7 @@ export default function Navbar() {
               </div>
             </SheetContent>
           </Sheet>
+          <ThemeToggle className="size-[42px] [&_svg]:size-6" />
         </div>
       </nav>
       <motion.div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] origin-left bg-gradient-to-r from-sky-500 via-cyan-500 to-teal-500" style={{ scaleX: reducedMotion ? scrollYProgress : smoothProgress }} />

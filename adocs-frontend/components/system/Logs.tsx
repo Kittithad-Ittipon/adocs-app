@@ -1,7 +1,7 @@
 "use client";
 import LogRecords from "@/components/system/shared/LogRecords";
-import SystemPageHeader from "@/components/system/shared/SystemPageHeader";
-import { Card } from "@/components/ui/card";
+import SystemPage from "@/components/system/shared/SystemPage";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import LoadingSection from "@/components/feedback/LoadingSection";
 import { useLoadingTasks } from "@/components/feedback/useLoadingTasks";
@@ -9,7 +9,7 @@ import { useLoadingTasks } from "@/components/feedback/useLoadingTasks";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Terminal, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type logsItem = {
@@ -21,12 +21,18 @@ type logsItem = {
   details: string;
 };
 
+const logColors = [
+  { label: "Blue", text: "text-sky-400", dot: "bg-sky-400" },
+  { label: "Gray", text: "text-zinc-300", dot: "bg-zinc-400" },
+  { label: "Green", text: "text-emerald-400", dot: "bg-emerald-400" },
+];
+
 const ComponentLogs = () => {
   const { loading, run } = useLoadingTasks(["fetchLogsData"]);
   const [allData, setAllData] = useState<logsItem[]>([]);
   const [selectedLog, setSelectedLog] = useState<logsItem | null>(null);
   const [isOpen, setIsOpen] = useState(false); const [error, setError] = useState<string | null>(null); const [retry, setRetry] = useState(0);
-  const [isChange, setIsChange] = useState<string>("text-sky-500");
+  const [isChange, setIsChange] = useState<string>("text-sky-400");
 
   useEffect(() => {
     const fetchLogsData = async () => {
@@ -54,27 +60,30 @@ const ComponentLogs = () => {
   }, [run, retry]);
 
   return (
-    <LoadingSection loading={loading} layout="table">
-      <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
-        <SystemPageHeader title="Logs" description="Browse activity and inspect detailed logs." />
-        {error && <Card className="gap-3 p-5 shadow-none" role="alert"><p className="text-sm text-destructive">{error}</p><Button variant="outline" className="w-fit" onClick={() => setRetry((value) => value + 1)}>Try again</Button></Card>}
-        <LogRecords records={allData} onDetails={(record) => { setSelectedLog(record); setIsOpen(true); }} />
-        {isOpen && (
-          <Card className="gap-0 overflow-hidden rounded-2xl bg-zinc-950 py-0 text-zinc-200 shadow-none">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-              <div className="flex min-w-0 items-center gap-2"><Terminal className="size-4 text-zinc-400" /><h2 className="break-all text-sm font-medium">{selectedLog?.containers || "Log details"}</h2></div>
-              <div className="flex items-center gap-1">
-                {[{ label: "Blue", color: "text-sky-400" }, { label: "Gray", color: "text-zinc-300" }, { label: "Green", color: "text-emerald-400" }].map((item) => (
-                  <Button key={item.label} type="button" size="icon-sm" variant="ghost" aria-label={item.label + " log text"} aria-pressed={isChange === item.color} onClick={() => setIsChange(item.color)} className={"hover:bg-white/10 hover:text-zinc-100 " + item.color}><span className="size-2.5 rounded-full bg-current" /></Button>
-                ))}
-                <Button type="button" size="icon-sm" variant="ghost" aria-label="Close log details" onClick={() => { setSelectedLog(null); setIsOpen(false); }} className="ml-2 hover:bg-white/10 hover:text-zinc-100"><X /></Button>
-              </div>
+    <SystemPage title="Logs" description="Browse activity and inspect detailed logs.">
+      <LoadingSection loading={loading}>
+        <div className="space-y-4">
+          {error && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 px-4 py-3"><p className="text-sm text-destructive">{error}</p><Button variant="outline" size="sm" onClick={() => setRetry((value) => value + 1)}>Try again</Button></div>}
+          <LogRecords records={allData} onDetails={(record) => { setSelectedLog(record); setIsOpen(true); }} />
+        </div>
+      </LoadingSection>
+      <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) setSelectedLog(null); }}>
+        <DialogContent className="gap-4 sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle className="break-all">{selectedLog?.containers || "Log details"}</DialogTitle>
+            <DialogDescription>{[selectedLog?.action, selectedLog?.upDateTime].filter(Boolean).join(" · ")}</DialogDescription>
+          </DialogHeader>
+          <div className="overflow-hidden rounded-lg border bg-zinc-950 dark:bg-transparent">
+            <div className="flex items-center justify-end gap-1 border-b border-white/10 px-2 py-1.5 dark:border-border">
+              {logColors.map((item) => (
+                <Button key={item.label} type="button" size="icon-xs" variant="ghost" aria-label={item.label + " log text"} aria-pressed={isChange === item.text} onClick={() => setIsChange(item.text)} className="hover:bg-white/10 aria-pressed:bg-white/10 dark:hover:bg-muted dark:aria-pressed:bg-muted"><span className={cn("size-2 rounded-full", item.dot)} /></Button>
+              ))}
             </div>
-            <pre tabIndex={0} aria-label="Log output" className={"max-h-96 min-h-40 overflow-auto whitespace-pre-wrap break-words p-4 font-mono text-xs leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:p-5 sm:text-sm " + isChange}>{selectedLog?.details || "No log details available."}</pre>
-          </Card>
-        )}
-      </div>
-    </LoadingSection>
+            <pre tabIndex={0} aria-label="Log output" className={"max-h-[60dvh] min-h-48 overflow-auto whitespace-pre-wrap break-words p-4 font-mono text-xs leading-relaxed outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring " + isChange}>{selectedLog?.details || "No log details available."}</pre>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </SystemPage>
   );
 };
 export default ComponentLogs;

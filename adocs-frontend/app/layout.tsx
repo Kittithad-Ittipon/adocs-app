@@ -8,7 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 const prompt = Prompt({
   subsets: ["latin", "thai"],
   variable: "--font-prompt",
-  weight: ["100", "200", "300", "400", "500", "600", "700" , "800", "900"],
+  weight: ["400", "500", "600"],
 });
 
 const geistMono = Geist_Mono({
@@ -28,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={cn("h-full", "antialiased", prompt.variable, geistMono.variable)}>
-      <body className="min-h-full flex flex-col font-sans items-center dark:bg-[oklch(0.2_0_0)]">
+      <body className="min-h-full flex flex-col font-sans items-center">
         <ThemeProvider
           attribute="class" 
           defaultTheme="system" 
@@ -36,7 +36,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
-          <Toaster richColors expand={true} position="top-right"/>
+          <Toaster expand={true} position="top-right"/>
         </ThemeProvider>
       </body>
     </html>

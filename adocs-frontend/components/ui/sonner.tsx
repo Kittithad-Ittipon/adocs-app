@@ -18,11 +18,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
       icons={{
-        success: <CircleCheckIcon className="size-5" />,
-        info: <InfoIcon className="size-5" />,
-        warning: <TriangleAlertIcon className="size-5" />,
-        error: <OctagonXIcon className="size-5" />,
-        loading: <Loader2Icon className="size-5 animate-spin" />,
+        success: <CircleCheckIcon className="size-4" />,
+        info: <InfoIcon className="size-4" />,
+        warning: <TriangleAlertIcon className="size-4" />,
+        error: <OctagonXIcon className="size-4" />,
+        loading: <Loader2Icon className="size-4 animate-spin" />,
       }}
       style={
         {
@@ -34,14 +34,14 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }
       toastOptions={{
         classNames: {
-          toast: "cn-toast !shadow-none !rounded-xl !border",
-          title: "text-md !font-[700]",
-          description: "text-sm !font-[400]",
-          info: "dark:!bg-cyan-600 dark:!text-white dark:!border-cyan-400",
-          warning: "dark:!bg-yellow-500 dark:!text-white dark:!border-yellow-200",
-          success: "dark:!bg-emerald-600 dark:!text-white dark:!border-emerald-400",
-          error: "dark:!bg-rose-600 dark:!text-white dark:!border-rose-500",
-          loading: "!text-black/85 dark:!text-white",
+          toast: "cn-toast !gap-2.5 !rounded-lg !border !font-sans !shadow-lg !shadow-black/5",
+          title: "!text-sm !font-medium",
+          description: "!text-xs !font-normal !text-muted-foreground",
+          success: "[&_[data-icon]]:text-emerald-500",
+          info: "[&_[data-icon]]:text-sky-500",
+          warning: "[&_[data-icon]]:text-amber-500",
+          error: "[&_[data-icon]]:text-red-500",
+          loading: "[&_[data-icon]]:text-muted-foreground",
         },
       }}
       {...props}

@@ -24,18 +24,18 @@ export default function DomainList({ domains, title }: { domains: string[]; titl
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-sky-700 dark:text-cyan-300" aria-label={"Show " + values.length + " domains" + (title ? " for " + title : "")}>
+        <Button type="button" variant="outline" size="xs" className="gap-1.5" aria-label={"Show " + values.length + " domains" + (title ? " for " + title : "")}>
           <Globe aria-hidden="true" />{values.length} domains
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Globe className="size-5 text-sky-500" aria-hidden="true" />{values.length} domains</DialogTitle>
+          <DialogTitle>{values.length} domains</DialogTitle>
           <DialogDescription className="break-all">{title}</DialogDescription>
         </DialogHeader>
-        <ul className="divide-y rounded-xl border">
+        <ul className="divide-y rounded-lg border">
           {values.map((domain) => (
-            <li key={domain} className="flex min-w-0 items-center justify-between gap-3 px-4 py-3 text-sm">
+            <li key={domain} className="flex min-w-0 items-center justify-between gap-3 px-3 py-2.5 text-sm">
               <span className="min-w-0 [&_a]:max-w-full [&_a>span]:min-w-0"><DomainLink domain={domain} /></span>
               <DomainScope domain={domain} />
             </li>

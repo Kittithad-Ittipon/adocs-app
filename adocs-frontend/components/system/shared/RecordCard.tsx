@@ -9,17 +9,22 @@ export default function RecordCard({ title, status, fields, actions }: {
   actions?: ReactNode;
 }) {
   return (
-    <Card className="h-full gap-5 shadow-none transition-[border-color,box-shadow] duration-300 hover:border-sky-500/40 hover:shadow-md motion-reduce:transition-none">
-      <CardHeader>
-        {status && <div className="flex flex-wrap gap-2">{status}</div>}
-        <CardTitle className="min-w-0 break-words text-base [overflow-wrap:anywhere]">{title}</CardTitle>
+    <Card className="h-full gap-3 py-4 shadow-none motion-safe:transition-colors hover:border-foreground/20">
+      <CardHeader className="flex-row items-start justify-between gap-3 px-4">
+        <CardTitle className="min-w-0 break-words text-sm font-medium [overflow-wrap:anywhere]">{title}</CardTitle>
+        {status && <div className="flex shrink-0 flex-wrap justify-end gap-1.5">{status}</div>}
       </CardHeader>
-      <CardContent className="flex-1">
-        <dl className="space-y-4">
-          {fields.map(({ label, value, icon: Icon }) => <div key={label} className="flex min-w-0 gap-3">{Icon && <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />}<div className="min-w-0 flex-1"><dt className="mb-1 text-xs text-muted-foreground">{label}</dt><dd className="break-words text-sm [overflow-wrap:anywhere]">{value}</dd></div></div>)}
+      <CardContent className="flex-1 px-4">
+        <dl className="divide-y">
+          {fields.map(({ label, value, icon: Icon }) => (
+            <div key={label} className="flex min-w-0 items-center justify-between gap-4 py-2 first:pt-0 last:pb-0">
+              <dt className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">{Icon && <Icon className="size-3.5" aria-hidden="true" />}{label}</dt>
+              <dd className="min-w-0 break-words text-right text-sm [overflow-wrap:anywhere]">{value}</dd>
+            </div>
+          ))}
         </dl>
       </CardContent>
-      {actions && <CardFooter className="justify-end border-t pt-4">{actions}</CardFooter>}
+      {actions && <CardFooter className="border-t px-4 pt-3 [&>*]:w-full">{actions}</CardFooter>}
     </Card>
   );
 }

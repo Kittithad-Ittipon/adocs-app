@@ -1,6 +1,5 @@
 "use client";
 import DashboardOverview from "@/components/system/shared/DashboardOverview";
-import LoadingSection from "@/components/feedback/LoadingSection";
 import { useLoadingTasks } from "@/components/feedback/useLoadingTasks";
 import { CloudUpload, DatabaseZap, SquareActivity, Users } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -45,28 +44,24 @@ const AdminDashboard = () => {
       description: "All registered user accounts.",
       value: stats.usersTotal,
       icon: Users,
-      iconColor: "text-sky-500",
     },
     {
       title: "Total Uploads",
       description: "Total number of uploaded projects.",
       value: stats.uploadTotal,
       icon: CloudUpload,
-      iconColor: "text-cyan-500",
     },
     {
       title: "Database requests",
       description: "Pending database creation requests.",
       value: stats.requestTotal,
       icon: DatabaseZap,
-      iconColor: "text-teal-500",
     },
     {
       title: "Monitoring",
       description: "Real-time server monitoring system.",
       value: "Open Beszel",
       icon: SquareActivity,
-      iconColor: "text-emerald-500",
       href: "https://beszel.addp.site",
     },
   ];
@@ -117,9 +112,7 @@ const AdminDashboard = () => {
     void run("fetchContainersData", fetchContainersData);
   }, [run]);
   return (
-    <LoadingSection loading={loading} layout="dashboard">
-      <DashboardOverview role="admin" metrics={dashboardData} records={allData} />
-    </LoadingSection>
+    <DashboardOverview role="admin" loading={loading} metrics={dashboardData} records={allData} />
   );
 };
 export default AdminDashboard;

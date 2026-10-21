@@ -14,13 +14,13 @@ export default function AuthFrame({ children, footer, label = "Login", loading =
   loading?: boolean;
 }) {
   return (
-    <div className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-muted/30 px-4 py-4 sm:px-6 sm:py-6">
-      <div aria-hidden="true" className="pointer-events-none absolute -top-32 left-1/2 size-96 -translate-x-1/2 rounded-full bg-sky-500/10 blur-3xl" />
+    <div className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-muted/30 px-4 py-4 sm:px-6 sm:py-6 dark:bg-transparent">
+      <div aria-hidden="true" className="pointer-events-none absolute -top-32 left-1/2 size-96 -translate-x-1/2 rounded-full bg-sky-500/10 blur-3xl dark:hidden" />
       <LoadingLine loading={loading} fixed label="Submitting form" />
       <div className="relative w-full max-w-md [&_[data-slot=button]:active]:translate-y-0">
         <div className="mb-4 flex items-center justify-between">
           <Button asChild variant="ghost" size="sm"><Link href="/"><ArrowLeft aria-hidden="true" /> Back to home</Link></Button>
-          <ThemeToggle />
+          <ThemeToggle className="size-10 [&_svg]:size-[22px]" />
         </div>
         <Card className="gap-5 py-6 shadow-lg shadow-black/5">
           <CardHeader className="items-center text-center">

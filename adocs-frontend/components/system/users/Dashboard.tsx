@@ -1,6 +1,5 @@
 "use client";
 import DashboardOverview from "@/components/system/shared/DashboardOverview";
-import LoadingSection from "@/components/feedback/LoadingSection";
 import { useLoadingTasks } from "@/components/feedback/useLoadingTasks";
 import { CloudUpload, Database, FileText, History } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -87,14 +86,12 @@ const UserDashboard = () => {
       description: "Total number of your uploaded projects.",
       value: stats.userUploadTotal,
       icon: CloudUpload,
-      iconColor: "text-sky-500",
     },
     {
       title: "Logs",
       description: "Monitor activity and view system logs.",
       value: "View Logs",
       icon: History,
-      iconColor: "text-cyan-500",
       href: "/users/logs",
     },
     {
@@ -102,7 +99,6 @@ const UserDashboard = () => {
       description: "Manage your database tables.",
       value: "Access Database",
       icon: Database,
-      iconColor: "text-teal-500",
       href: "https://pma.addp.site",
     },
     {
@@ -110,15 +106,12 @@ const UserDashboard = () => {
       description: "Read user guides and platform tutorials.",
       value: "Read Docs",
       icon: FileText,
-      iconColor: "text-emerald-500",
       href: "https://document.adocs.site/docs",
     },
   ];
 
   return (
-    <LoadingSection loading={loading} layout="dashboard">
-      <DashboardOverview role="user" metrics={dashboardData} records={allData} />
-    </LoadingSection>
+    <DashboardOverview role="user" loading={loading} metrics={dashboardData} records={allData} />
   );
 };
 export default UserDashboard;

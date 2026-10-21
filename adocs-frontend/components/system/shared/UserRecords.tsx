@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Boxes, Database, Mail, Shield, UserPen, UserRound } from "lucide-react";
+import { Boxes, Database, Mail, UserPen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import RecordCollection from "@/components/system/shared/RecordCollection";
 import RecordCard from "@/components/system/shared/RecordCard";
@@ -20,14 +20,14 @@ export default function UserRecords<T extends UserRecord>({ records, onEdit, hea
       records={records}
       recordKey={(record) => record.username}
       columns={[
-        { id: "name", label: "Username", icon: UserRound, cell: (record) => <div className="flex items-center gap-2"><span className="font-medium">{record.username}</span>{record.usersStatus !== null && <RecordStatus status="Deleting" />}</div> },
-        { id: "email", label: "Email", icon: Mail, cell: (record) => <span className="text-muted-foreground">{record.email || "No email"}</span> },
-        { id: "role", label: "Role", icon: Shield, cell: (record) => <RecordStatus status={record.role} tone="neutral" /> },
-        { id: "containers", label: "Containers", icon: Boxes, cell: (record) => <span className="tabular-nums">{record.container} <span className="text-muted-foreground">/ {record.maxContainer}</span></span> },
-        { id: "database", label: "Database", icon: Database, cell: (record) => <DatabaseStatus record={record} /> },
+        { id: "name", label: "Username", cell: (record) => <div className="flex items-center gap-2"><span className="font-medium">{record.username}</span>{record.usersStatus !== null && <RecordStatus status="Deleting" />}</div> },
+        { id: "email", label: "Email", cell: (record) => <span className="text-muted-foreground">{record.email || "No email"}</span> },
+        { id: "role", label: "Role", cell: (record) => <RecordStatus status={record.role} tone="neutral" dot={false} /> },
+        { id: "containers", label: "Containers", cell: (record) => <span className="tabular-nums">{record.container} <span className="text-muted-foreground">/ {record.maxContainer}</span></span> },
+        { id: "database", label: "Database", cell: (record) => <DatabaseStatus record={record} /> },
         { id: "actions", label: "Actions", className: "text-right", cell: action },
       ]}
-      renderCard={(record) => <RecordCard title={record.username} status={<><RecordStatus status={record.role} tone="neutral" />{record.usersStatus !== null && <RecordStatus status="Deleting" />}</>} fields={[
+      renderCard={(record) => <RecordCard title={record.username} status={<><RecordStatus status={record.role} tone="neutral" dot={false} />{record.usersStatus !== null && <RecordStatus status="Deleting" />}</>} fields={[
         { label: "Email", value: record.email || "No email", icon: Mail },
         { label: "Containers", value: record.container + " / " + record.maxContainer, icon: Boxes },
         { label: "Database", value: <DatabaseStatus record={record} />, icon: Database },

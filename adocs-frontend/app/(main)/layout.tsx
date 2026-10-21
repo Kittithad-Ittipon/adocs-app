@@ -7,7 +7,7 @@ export default function MainLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="min-h-full w-full flex flex-col font-sans items-center dark:bg-[oklch(0.2_0_0)]">
+    <div className="min-h-full w-full flex flex-col font-sans items-center">
       <Navbar />
       {children}
       <Footer />

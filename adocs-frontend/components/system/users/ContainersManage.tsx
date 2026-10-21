@@ -4,8 +4,9 @@ import DomainLink from "@/components/system/shared/DomainLink";
 import DomainList, { DomainScope, recordDomains } from "@/components/system/shared/DomainList";
 import ManagedContainerRecords from "@/components/system/shared/ManagedContainerRecords";
 import RecordStatus from "@/components/system/shared/RecordStatus";
-import SystemPageHeader from "@/components/system/shared/SystemPageHeader";
-import { Card, CardContent } from "@/components/ui/card";
+import SearchInput from "@/components/system/shared/SearchInput";
+import StatCard from "@/components/system/shared/StatCard";
+import SystemPage from "@/components/system/shared/SystemPage";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import LoadingSection from "@/components/feedback/LoadingSection";
@@ -42,7 +43,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { pollCeleryTask } from "@/lib/task-check";
-import { Activity, Box, Boxes, Clock3, Globe, Play, Search, Square, Trash2Icon, User } from "lucide-react";
+import { Activity, Boxes, Clock3, Globe, Play, Square, Trash2Icon, User } from "lucide-react";
 import { toast } from "sonner";
 
 type containersData = {
@@ -273,85 +274,83 @@ const ComponentContainersManage = ({ isAdmin = false }: { isAdmin?: boolean }) =
     setPending(true);
     try { await action(); } finally { setPending(false); }
   }
+  const forwardHost = selectedRecord?.proxies.find((proxy) => proxy.primary)?.forwardHost || selectedContainers?.containerName || "";
   return (
-    <LoadingSection loading={loading} layout="table">
-      <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
-        <SystemPageHeader title="Containers" description={isAdmin ? "Manage every deployed container, its routing and public domains." : "Manage deployment settings and container resources."} />
-        <div className="grid gap-3 sm:grid-cols-3">{summary.map((item) => <Card key={item.label} className="rounded-xl py-4 shadow-none"><CardContent className="flex items-center justify-between gap-3 px-4"><div><p className="text-xs text-muted-foreground">{item.label}</p><p className="mt-1 text-2xl font-semibold tabular-nums">{item.value}</p></div><item.icon className="size-5 text-sky-500" aria-hidden="true" /></CardContent></Card>)}</div>
-
-        <ManagedContainerRecords headerContent={<div className="relative w-full sm:w-64"><Search aria-hidden="true" className="absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={isAdmin ? "Search container, owner or domain" : "Search container or domain"} aria-label="Search containers" className="pl-9" /></div>} records={filteredContainers} onEdit={(record) => { setSelectedContainers(record); setSubdomain(""); setPort(record.port); setProtocol(record.protocol); setPublish(record.publish); setIsOpen(true); }} />
-        <Dialog open={isOpen} onOpenChange={(open) => { if (!pending) setIsOpen(open); }}>
-          <DialogContent className="sm:max-w-xl" onEscapeKeyDown={(event) => { if (pending) event.preventDefault(); }} onInteractOutside={(event) => { if (pending) event.preventDefault(); }}>
-            <DialogHeader>
-              <DialogTitle className="flex min-w-0 items-center gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-300"><Box className="size-5" /></span>Manage container</DialogTitle>
-              <DialogDescription>Update routing, visibility and container status.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-3 rounded-xl bg-muted/50 p-4 text-sm">
-              <div className="flex min-w-0 items-center gap-2"><Box className="size-4 shrink-0 text-muted-foreground" /><span className="break-all">{selectedContainers?.containerName}</span></div>
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground"><span className="flex items-center gap-2"><RecordStatus status={selectedContainers?.status || "Unknown"} /></span>{isAdmin && <span className="flex items-center gap-2"><User className="size-4" />{selectedRecord?.owner || "-"}</span>}<span className="flex min-w-0 items-center gap-2">{selectedRecord && recordDomains(selectedRecord).length <= 1 && <Globe className="size-4 shrink-0" />}<DomainList domains={selectedRecord ? recordDomains(selectedRecord) : []} title={selectedRecord?.containerName} /></span></div>
-            </div>
-            <form id="edit-container" onSubmit={(event) => { event.preventDefault(); void performAction(() => toEditContainers(event)); }} className="space-y-5">
-              <div>
-                <div className="grid grid-cols-[7rem_minmax(0,1fr)_6rem] gap-2">
-                  <Field>
-                    <FieldLabel htmlFor="container-protocol">Protocol</FieldLabel>
-                    <Select value={protocol.toLowerCase() || undefined} onValueChange={setProtocol} disabled={pending}><SelectTrigger id="container-protocol" className="h-10 w-full shadow-none"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="http">HTTP</SelectItem><SelectItem value="https">HTTPS</SelectItem></SelectContent></Select>
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="container-host">Host</FieldLabel>
-                    <Input id="container-host" readOnly value={selectedRecord?.proxies.find((proxy) => proxy.primary)?.forwardHost || selectedContainers?.containerName || ""} title={selectedRecord?.proxies.find((proxy) => proxy.primary)?.forwardHost || selectedContainers?.containerName} className="h-10 truncate bg-muted/50 text-muted-foreground shadow-none" />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="container-port">Port</FieldLabel>
-                    <Input id="container-port" type="text" inputMode="numeric" className="h-10 shadow-none" placeholder="3000" value={port} disabled={pending} onChange={(event) => setPort(event.target.value)} />
-                  </Field>
-                </div>
+    <SystemPage title="Containers" description={isAdmin ? "Manage every deployed container, its routing and public domains." : "Manage deployment settings and container resources."}>
+      <LoadingSection loading={loading} stats={3}>
+        <div className="space-y-6">
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">{summary.map((item) => <StatCard key={item.label} {...item} />)}</div>
+          <ManagedContainerRecords headerContent={<SearchInput value={search} onChange={setSearch} placeholder={isAdmin ? "Search container, owner or domain" : "Search container or domain"} label="Search containers" />} records={filteredContainers} onEdit={(record) => { setSelectedContainers(record); setSubdomain(""); setPort(record.port); setProtocol(record.protocol); setPublish(record.publish); setIsOpen(true); }} />
+        </div>
+      </LoadingSection>
+      <Dialog open={isOpen} onOpenChange={(open) => { if (!pending) setIsOpen(open); }}>
+        <DialogContent className="sm:max-w-xl" onEscapeKeyDown={(event) => { if (pending) event.preventDefault(); }} onInteractOutside={(event) => { if (pending) event.preventDefault(); }}>
+          <DialogHeader>
+            <DialogTitle className="break-all">{selectedContainers?.containerName}</DialogTitle>
+            <DialogDescription asChild>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
+                <RecordStatus status={selectedContainers?.status || "Unknown"} />
+                {isAdmin && <span className="inline-flex items-center gap-1.5"><User className="size-3.5" aria-hidden="true" />{selectedRecord?.owner || "-"}</span>}
+                <span className="inline-flex min-w-0 items-center gap-1.5">{selectedRecord && recordDomains(selectedRecord).length <= 1 && <Globe className="size-3.5 shrink-0" aria-hidden="true" />}<DomainList domains={selectedRecord ? recordDomains(selectedRecord) : []} title={selectedRecord?.containerName} /></span>
               </div>
-              <Field orientation="horizontal" className="rounded-xl border p-4">
-                <FieldContent><FieldLabel htmlFor="container-publish">Publish container</FieldLabel><FieldDescription className="text-xs">Expose this container to the local network.</FieldDescription></FieldContent>
-                <Switch id="container-publish" checked={publish} disabled={pending} onCheckedChange={setPublish} />
+            </DialogDescription>
+          </DialogHeader>
+          <form id="edit-container" onSubmit={(event) => { event.preventDefault(); void performAction(() => toEditContainers(event)); }} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-[7rem_minmax(0,1fr)_6rem]">
+              <Field className="gap-2">
+                <FieldLabel htmlFor="container-protocol">Protocol</FieldLabel>
+                <Select value={protocol.toLowerCase() || undefined} onValueChange={setProtocol} disabled={pending}><SelectTrigger id="container-protocol" className="w-full"><SelectValue placeholder="Select" /></SelectTrigger><SelectContent><SelectItem value="http">HTTP</SelectItem><SelectItem value="https">HTTPS</SelectItem></SelectContent></Select>
               </Field>
-              {isAdmin && selectedRecord && (
-                <Field>
-                  <FieldLabel htmlFor="container-domain" className="justify-between">Domains<span className="text-xs font-normal tabular-nums text-muted-foreground">{recordDomains(selectedRecord).length}/{selectedRecord.maxDomains}</span></FieldLabel>
-                  <ul className="divide-y rounded-xl border">
-                    {selectedRecord.proxies.flatMap((proxy) => proxy.domains.map((domain) => (
-                      <li key={proxy.id + domain} className="flex min-w-0 items-center justify-between gap-3 py-2 pl-4 pr-2">
-                        <span className="flex min-w-0 items-center gap-2 text-sm [&_a]:max-w-full [&_a>span]:min-w-0"><DomainLink domain={domain} /><DomainScope domain={domain} /></span>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild><Button type="button" variant="ghost" size="icon-sm" disabled={pending || proxy.domains.length <= 1} className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label={"Remove " + domain}><Trash2Icon /></Button></AlertDialogTrigger>
-                          <AlertDialogContent><AlertDialogHeader><AlertDialogTitle className="break-all">Remove {domain}?</AlertDialogTitle><AlertDialogDescription>This domain will stop forwarding to this container.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => { void performAction(() => toRemoveDomain(proxy.id, domain)); }}>Remove</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-                        </AlertDialog>
-                      </li>
-                    )))}
-                    {recordDomains(selectedRecord).length < selectedRecord.maxDomains && <li className="p-2">
-                      <InputGroup className="h-9 border-0 shadow-none">
-                        <InputGroupInput id="container-domain" placeholder="Add domain" value={subdomain} disabled={pending} autoComplete="off" spellCheck={false} onChange={(event) => setSubdomain(event.target.value.toLowerCase().replace(/\s/g, ""))} />
-                        <InputGroupAddon align="inline-end"><InputGroupText>.adocs.site</InputGroupText></InputGroupAddon>
-                      </InputGroup>
-                    </li>}
-                  </ul>
-                </Field>
-              )}
-            </form>
-            <section className="space-y-3 rounded-xl border p-4" aria-label="Container controls">
-              <div className="space-y-1"><h3 className="text-sm font-medium">Container controls</h3><p className="text-xs text-muted-foreground">Start or stop this container, or remove its entire stack.</p></div>
-              <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-                <Button type="button" variant="outline" className="h-10 w-full" disabled={pending || !["running", "stopped"].includes(selectedContainers?.status || "")} onClick={(event) => { void performAction(() => toControlContainers(event)); }}>
-                  {selectedContainers?.status === "running" ? <Square className="text-amber-500" aria-hidden="true" /> : selectedContainers?.status === "stopped" ? <Play className="text-emerald-500" aria-hidden="true" /> : <Clock3 aria-hidden="true" />}
-                  {selectedContainers?.status === "running" ? "Stop container" : selectedContainers?.status === "stopped" ? "Start container" : "Pending"}
-                </Button>
-                <AlertDialog><AlertDialogTrigger asChild><Button type="button" variant="destructive" disabled={pending} className="h-10 w-full"><Trash2Icon />Delete stack</Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete entire stack?</AlertDialogTitle><AlertDialogDescription>This permanently deletes all containers in the same stack, along with mapped data, networks and configuration. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => { void performAction(toDeleteStack); }}>Delete stack</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
-              </div>
-            </section>
-            <DialogFooter className="border-t pt-4">
-              <DialogClose asChild><Button variant="outline" disabled={pending}>Cancel</Button></DialogClose>
-              <Button type="submit" form="edit-container" disabled={pending}>{pending ? "Saving..." : "Save changes"}</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </LoadingSection>
+              <Field className="gap-2 max-sm:order-first max-sm:col-span-2">
+                <FieldLabel htmlFor="container-host">Host</FieldLabel>
+                <Input id="container-host" readOnly value={forwardHost} title={forwardHost} className="truncate bg-muted/50 text-muted-foreground dark:bg-muted/30" />
+              </Field>
+              <Field className="gap-2">
+                <FieldLabel htmlFor="container-port">Port</FieldLabel>
+                <Input id="container-port" type="text" inputMode="numeric" placeholder="3000" value={port} disabled={pending} onChange={(event) => setPort(event.target.value)} />
+              </Field>
+            </div>
+            <Field orientation="horizontal" className="rounded-lg border px-3 py-2.5">
+              <FieldContent><FieldLabel htmlFor="container-publish">Publish container</FieldLabel><FieldDescription className="text-xs">Expose this container to the local network.</FieldDescription></FieldContent>
+              <Switch id="container-publish" checked={publish} disabled={pending} onCheckedChange={setPublish} />
+            </Field>
+            {isAdmin && selectedRecord && (
+              <Field className="gap-2">
+                <FieldLabel htmlFor="container-domain" className="w-full justify-between">Domains<span className="text-xs font-normal tabular-nums text-muted-foreground">{recordDomains(selectedRecord).length}/{selectedRecord.maxDomains}</span></FieldLabel>
+                <ul className="divide-y rounded-lg border">
+                  {selectedRecord.proxies.flatMap((proxy) => proxy.domains.map((domain) => (
+                    <li key={proxy.id + domain} className="flex min-w-0 items-center justify-between gap-3 py-1.5 pl-3 pr-1.5">
+                      <span className="flex min-w-0 items-center gap-2 text-sm [&_a]:max-w-full [&_a>span]:min-w-0"><DomainLink domain={domain} /><DomainScope domain={domain} /></span>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild><Button type="button" variant="ghost" size="icon-sm" disabled={pending || proxy.domains.length <= 1} className="shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label={"Remove " + domain}><Trash2Icon /></Button></AlertDialogTrigger>
+                        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle className="break-all">Remove {domain}?</AlertDialogTitle><AlertDialogDescription>This domain will stop forwarding to this container.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => { void performAction(() => toRemoveDomain(proxy.id, domain)); }}>Remove</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+                      </AlertDialog>
+                    </li>
+                  )))}
+                  {recordDomains(selectedRecord).length < selectedRecord.maxDomains && <li className="p-1">
+                    <InputGroup className="border-0 shadow-none dark:bg-transparent">
+                      <InputGroupInput id="container-domain" placeholder="Add domain" value={subdomain} disabled={pending} autoComplete="off" spellCheck={false} onChange={(event) => setSubdomain(event.target.value.toLowerCase().replace(/\s/g, ""))} />
+                      <InputGroupAddon align="inline-end"><InputGroupText>.adocs.site</InputGroupText></InputGroupAddon>
+                    </InputGroup>
+                  </li>}
+                </ul>
+              </Field>
+            )}
+          </form>
+          <DialogFooter className="border-t pt-4">
+            <div className="grid grid-cols-2 gap-2 sm:mr-auto sm:flex">
+              <Button type="button" variant="outline" disabled={pending || !["running", "stopped"].includes(selectedContainers?.status || "")} onClick={(event) => { void performAction(() => toControlContainers(event)); }}>
+                {selectedContainers?.status === "running" ? <Square className="text-amber-500" aria-hidden="true" /> : selectedContainers?.status === "stopped" ? <Play className="text-emerald-500" aria-hidden="true" /> : <Clock3 aria-hidden="true" />}
+                {selectedContainers?.status === "running" ? "Stop container" : selectedContainers?.status === "stopped" ? "Start container" : "Pending"}
+              </Button>
+              <AlertDialog><AlertDialogTrigger asChild><Button type="button" variant="destructive" disabled={pending}><Trash2Icon />Delete stack</Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete entire stack?</AlertDialogTitle><AlertDialogDescription>This permanently deletes all containers in the same stack, along with mapped data, networks and configuration. This action cannot be undone.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={() => { void performAction(toDeleteStack); }}>Delete stack</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+            </div>
+            <DialogClose asChild><Button variant="outline" disabled={pending}>Cancel</Button></DialogClose>
+            <Button type="submit" form="edit-container" disabled={pending}>{pending ? "Saving..." : "Save changes"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </SystemPage>
   );
 };
 export default ComponentContainersManage;

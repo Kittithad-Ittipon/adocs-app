@@ -1,4 +1,4 @@
-import { Activity, Box, Clock, Terminal, UserRound } from "lucide-react";
+import { Activity, Clock, Terminal, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import RecordCollection from "@/components/system/shared/RecordCollection";
 import RecordCard from "@/components/system/shared/RecordCard";
@@ -14,10 +14,10 @@ export default function LogRecords<T extends LogRecord>({ records, onDetails }: 
       records={records}
       recordKey={(record, index) => record.upDateTime + "-" + index}
       columns={[
-        { id: "user", label: "User", icon: UserRound, cell: (record) => <span className="font-medium">{record.username}</span> },
-        { id: "container", label: "Container", icon: Box, cell: (record) => record.containers },
-        { id: "action", label: "Action", icon: Activity, cell: (record) => <span className="rounded-md bg-muted px-2 py-1 text-xs">{record.action}</span> },
-        { id: "updated", label: "Updated", icon: Clock, cell: (record) => <span className="whitespace-nowrap text-muted-foreground">{record.upDateTime}</span> },
+        { id: "user", label: "User", cell: (record) => <span className="font-medium">{record.username}</span> },
+        { id: "container", label: "Container", cell: (record) => record.containers },
+        { id: "action", label: "Action", cell: (record) => <span className="text-muted-foreground">{record.action}</span> },
+        { id: "updated", label: "Updated", cell: (record) => <span className="whitespace-nowrap text-muted-foreground">{record.upDateTime}</span> },
         { id: "status", label: "Status", cell: (record) => <RecordStatus status={record.status} /> },
         { id: "details", label: "Details", className: "text-right", cell: action },
       ]}

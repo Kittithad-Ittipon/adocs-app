@@ -3,18 +3,16 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { ReactNode } from "react";
 import ContentSkeleton, { type SkeletonLayout } from "@/components/feedback/ContentSkeleton";
-import LoadingLine from "@/components/feedback/LoadingLine";
-import { cn } from "@/lib/utils";
 
-export default function LoadingSection({ children, loading, layout = "table" }: {
+export default function LoadingSection({ children, loading, layout = "table", stats }: {
   children: ReactNode;
   loading: boolean;
   layout?: SkeletonLayout;
+  stats?: number;
 }) {
   const reducedMotion = useReducedMotion();
   return (
-    <div className={cn("relative min-w-0", layout !== "compact" && "w-full")} aria-busy={loading}>
-      {layout !== "compact" && <LoadingLine loading={loading} />}
+    <div className="relative w-full min-w-0" aria-busy={loading}>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={loading ? "loading" : "content"}
@@ -23,7 +21,7 @@ export default function LoadingSection({ children, loading, layout = "table" }: 
           exit={{ opacity: 0 }}
           transition={{ duration: reducedMotion ? 0 : 0.2 }}
         >
-          {loading ? <ContentSkeleton layout={layout} /> : children}
+          {loading ? <ContentSkeleton layout={layout} stats={stats} /> : children}
         </motion.div>
       </AnimatePresence>
     </div>

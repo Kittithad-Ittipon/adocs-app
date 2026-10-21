@@ -6,7 +6,7 @@ import { version } from "@/package.json";
 
 export default function Footer() {
   return (
-    <footer className="w-full border-t bg-muted/30">
+    <footer className="w-full border-t bg-muted/30 dark:bg-transparent">
       <Reveal className="mx-auto max-w-7xl px-6 py-8 md:px-10">
         <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
           <div className="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
