@@ -1,0 +1,167 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { Callout, Steps, Tabs } from 'nextra/components'
+
+# Docker Desktop
+
+**Docker Desktop** เป็นเครื่องมือที่ช่วยให้ผู้ใช้สามารถสร้างและจัดการ Container ได้ง่ายบน Windows และ macOS    
+
+<div className="mt-7">
+  <Zoom>
+    <img
+      src="/img/docker-desktop.png"
+      alt="Docker Architecture Overview"
+      style={{ width: "100%", height: "auto", borderRadius: "15px"}}
+    />
+  </Zoom>
+</div>
+
+## Installing Docker Desktop
+
+1.ดาวน์โหลด: ไปที่ (https://www.docker.com/products/docker-desktop)
+
+2.เลือก "Download Docker Desktop"
+
+3.คลิก "Download for Windows-AMD64"
+
+4.เริ่มต้นการใช้งาน Docker Desktop (จำ เป็นต้อง Login เมื่อจะ Push Image ขึ้น Docker Hub)
+
+<div className="mt-7">
+  <Zoom>
+    <img
+      src="/img/docker-desktop2.png"
+      alt="Docker Architecture Overview"
+      style={{ width: "100%", height: "auto", borderRadius: "15px"}}
+    />
+  </Zoom>
+</div>
+
+
+
+
+## Getting Started with Docker
+
+สร้าง `Web Server` ด้วย Nginx เพื่อทดสอบว่า Docker ใช้งานได้จริง
+
+### Search Image 
+พิมพ์ `nginx` ในช่องค้นหาด้านบน และกดปุ่ม **Pull** ซึ่งเป็น Image ประเภท Web Server ให้บริการเว็บเพจและตอบสนองคำขอจากผู้ใช้
+
+<div className="mt-7">
+  <Zoom>
+    <img
+      src="/img/docker-desktop3.png"
+      alt="Docker Architecture Overview"
+      style={{ width: "100%", height: "auto", borderRadius: "15px"}}
+    />
+  </Zoom>
+</div>
+
+### Set up and run
+ไปที่แท็บ **Images** กดปุ่ม Run ที่ nginx และตั้งค่า Port ดังนี้:
+
+<div className="mt-7">
+  <Zoom>
+    <img
+      src="/img/docker-desktop4.png"
+      alt="Docker Architecture Overview"
+      style={{ width: "100%", height: "auto", borderRadius: "15px"}}
+    />
+  </Zoom>
+</div>
+
+1. กดที่ลูกศรลงตรง **Optional settings** เพื่อขยายเมนู
+2. **Container Name:** ตั้งชื่อเล่นให้จำง่าย เช่น `my-web-server`
+3. **Host Port:** (สำคัญมาก) ให้ใส่เลข `8080`
+   > *อธิบาย: คือการบอกว่า ถ้าเราเข้าเว็บผ่าน Port 8080 ในเครื่องเรา ให้ส่งข้อมูลไปที่ Port 80 ของ Docker*
+
+<div className="mt-7">
+  <Zoom>
+    <img
+      src="/img/docker-desktop5.png"
+      alt="Docker Architecture Overview"
+      style={{ width: "100%", height: "auto", borderRadius: "15px"}}
+    />
+  </Zoom>
+</div>
+
+### Check status
+เมื่อกดปุ่ม Run สีน้ำเงินแล้ว ระบบจะพาไปที่หน้า **Containers**
+ให้สังเกตสถานะต้องเป็นสีเขียว **Running** และมี Port ระบุเป็น `8080:80`
+
+<div className="mt-7">
+  <Zoom>
+    <img
+      src="/img/docker-desktop6.png"
+      alt="Docker Architecture Overview"
+      style={{ width: "100%", height: "auto", borderRadius: "15px"}}
+    />
+  </Zoom>
+</div>
+
+### Test for live deployment
+เปิด Web Browser (Chrome, Edge หรือ Safari) แล้วพิมพ์ที่ช่อง URL:
+`http://localhost:8080`
+
+หากสำเร็จ จะพบข้อความ **"Welcome to nginx!"**
+
+<div className="mt-7">
+  <Zoom>
+    <img
+      src="/img/docker-desktop7.png"
+      alt="Docker Architecture Overview"
+      style={{ width: "100%", height: "auto", borderRadius: "15px"}}
+    />
+  </Zoom>
+</div>
+
+### Cleanup
+เพื่อไม่ให้เปลืองทรัพยากรเครื่อง เมื่อทดลองเสร็จแล้วควรปิดทุกครั้ง
+1. กดปุ่ม **Stop** เพื่อหยุดการทำงาน
+2. กดปุ่ม **Delete** รูปถังขยะ เพื่อลบ Container ทิ้ง
+
+## Sharing Docker Images
+
+### Image
+
+คือ แม่แบบ (Template) หรือ พิมพ์เขียวของแอปพลิเคชัน ที่กําหนดไว้ว่าเมื่อ Container ถูกสร้างขึ้นจะต้องมีอะไรบ้างภายในนั้น เช่น ระบบ
+ปฏิบัติการขนาดเล็ก โปรแกรมที่จําเป็น ไลบรารี และโค้ดของแอปพลิเคชัน โดยมีขั้นตอนการ Build Image ดังนี้
+1.สร้าง Dockerfile 
+2.Buid Image โดยใช้คําสั่ง `docker build -t <image-name>:<tag> <path>` โดยใช้ Path ใน Floder ที่มี Dockerfile
+
+### Push/Pull Image
+
+* สร้าง Repogistories ใน Docker Hub โดยใช้คําสั่ง `docker tag <image:tag> <username/repositories>:<tag>`
+
+```bash
+docker tag <image:tag> <username/repositories>:<tag>
+```
+
+* Push Image โดยใช้คําสั่ง `docker push <username>/<repository>:<tag>`
+
+```bash
+docker push <username>/<repository>:<tag>
+```
+* Pull Image จาก Docker Hub โดยใช้คําสั่ง `docker tag <image-name> <username>/<repository>:<tag>`
+
+```bash
+docker pull <image-name> <username>/<repository>:<tag>
+```
+
+### Push/Pull Image Example
+
+- สร้าง Repogistories ใน Docker Hub โดยใช้คําสั่ง `docker tag my-web:1.0 ctsurin/my-web:1.0` จากนั้น Docker สร้าง Image
+ชื่อ `ctsurin/my-web Tag 1.0` ที่ใช้สําหรับ `Push Image`
+
+- Push Image `docker push ctsurin/my-web:1.0` 
+
+- ตรวจสอบ Repository ที่ Myhub https://login.docker.com/u/login/
+
+- Pull Image จาก Docker Hub โดยใช้คําสั่ง `docker pull ctsurin/my-web:1.0`
+
+
+
+โดย **Repository** หนึ่งควรเก็บ image ประเภทเดียวกัน โดยการสร้าง Repository ใหม่ จากคําสั่ง Docker Tag เช่น
+
+- `docker tag my-py-app:1.0 ctsurin/my-py-app:1.0`
+
+- `docker push ctsurin/my-py-app:1.0`

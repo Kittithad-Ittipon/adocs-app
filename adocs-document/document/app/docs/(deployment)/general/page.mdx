@@ -1,0 +1,78 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { EmbedYoutube } from "@/components/embed-youtube";
+
+# General
+
+**Platform** ที่ถูกพัฒนาขึ้นเพื่อช่วยอำนวยความสะดวกในการ Deploy เว็บแอปพลิเคชันด้วยเทคโนโลยี Container
+ผู้ใช้งานสามารถบริหารจัดการระบบผ่าน Web Interface ได้โดยตรง ลดความซับซ้อนของการใช้คำสั่ง Command Line และช่วยให้สภาพแวดล้อมของ Server เป็นมาตรฐานเดียวกัน
+
+---
+
+## Technology Stack
+
+โครงสร้างของระบบแบ่งออกเป็น 2 ส่วนหลัก โดยเลือกใช้เทคโนโลยีที่ทันสมัยและมีประสิทธิภาพ ดังนี้
+
+### Frontend
+<div>
+  <Zoom>
+    <img
+      src="/img/next.png"
+      alt="Register Page"
+      style={{ width: "30%", height: "auto", borderRadius: "15px" }}
+    />
+  </Zoom>
+</div>
+ส่วนติดต่อผู้ใช้งาน (User Interface) พัฒนาด้วย
+- **Next.js**: Framework หลักสำหรับการทำ Web Application และจัดการ Routing
+- **Tailwind CSS**: Utility-first CSS สำหรับตกแต่งหน้าตาให้มีความสวยงาม
+
+### Backend
+<div>
+  <Zoom>
+    <img
+      src="/img/flask.png"
+      alt="Register Page"
+      style={{ width: "30%", height: "auto", borderRadius: "15px" }}
+    />
+  </Zoom>
+</div>
+
+ส่วนประมวลผลหลัก (Core System) พัฒนาด้วยภาษา Python ผ่าน Framework Flask ทำหน้าที่เป็น RESTful API เชื่อมต่อระหว่าง Frontend และ Docker Engine โดยประกอบด้วยไลบรารีสำคัญดังนี้
+
+- **Core Framework**: ใช้ Flask ร่วมกับ Gunicorn เพื่อให้บริการ Web Server และ API ที่สามารถเรียกผ่านนอก Flask ได้
+- **Data & Security**: จัดการฐานข้อมูลผ่าน SQLAlchemy พร้อมระบบยืนยันตัวตนที่ปลอดภัยด้วย JWT และ Bcrypt
+- **System Operation**: ควบคุมการอ่านและประมวลผลไฟล์ Configuration ของระบบด้วย PyYAML
+
+
+## Workflow Overview
+
+ขั้นตอนการทำงานเบื้องหลังเมื่อมีการ Deploy ระบบ:
+
+1. **Upload**: ผู้ใช้งานอัปโหลดไฟล์ `docker-compose.yml`
+2. **Validation**: ระบบใช้ `pyyaml` ตรวจสอบโครงสร้างและความถูกต้องของไฟล์
+3. **Execution**: Backend สั่งการ Docker Engine เพื่อสร้าง Container ตามที่ระบุ
+
+---
+
+## System Capabilities
+
+- **Web-Based Management**: จัดการ Container ได้โดยไม่ต้อง Remote เข้า Server
+- **Standardization**: บังคับใช้โครงสร้างการ Deploy ที่เป็นระเบียบ
+- **Real-time Status**: ตรวจสอบสถานะการทำงานของ Service ได้ทันที
+- **Multi-Project**: รองรับการดูแลหลายโปรเจกต์พร้อมกัน
+
+---
+
+## Important Notice
+โปรดตรวจสอบไฟล์ `docker-compose.yml` และทดสอบระบบในเครื่อง Local ให้สมบูรณ์ก่อนนำขึ้น Platform เพื่อป้องกันข้อผิดพลาดในการ Build Image หรือการทำงานของ Container
+
+---
+
+## Register
+
+หน้าลงทะเบียนสำหรับผู้ใช้งานใหม่ เพื่อใช้งานระบบและเริ่มสร้างโปรเจกต์ หากใช้งาน Database สามารถสร้างพร้อมกับ Account ได้โดยเลือกการ `Create Database`
+
+<br />
+
+<EmbedYoutube id="etD7ZWVYbW4" />

@@ -1,0 +1,148 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { Callout, Steps } from "nextra/components";
+
+# Get Started
+
+การตั้งค่า IP Address และ DNS Server บนระบบปฏิบัติการ Windows เป็นขั้นตอนสำคัญสำหรับการใช้งานระบบเครือข่ายภายใน (Local Area Network) เช่น การเชื่อมต่อไปยัง **Local DNS Server**, **Docker Service**, หรือ **Web Application ภายในองค์กร**
+
+เอกสารนี้อธิบายขั้นตอนการตั้งค่า **IPv4 บน Windows** เพื่อให้เครื่องสามารถใช้งาน **Local DNS** ได้อย่างถูกต้อง
+
+---
+
+<Callout type="info">
+    กด **Win + R** พิมพ์ **ncpa.cpl** Enter ระบบจะเปิดหน้า **Network Connections** ทันที
+</Callout>
+
+วิธีนี้เหมาะสำหรับผู้ดูแลระบบและช่วยลดขั้นตอนการเข้า Control Panel หลายชั้น
+
+---
+
+## Configure IPv4 on Windows (CLI)
+
+<Callout type="error">
+คำสั่งทั้งหมดที่ใช้ใน <b>Command Prompt</b> หรือ <b>PowerShell</b> ต้อง <b>Run as Administrator</b>.
+</Callout>
+
+### Check Network Interface
+ตรวจสอบชื่อ Network Interface ที่กำลังใช้งาน เช่น `Wi-Fi` หรือ `Ethernet`
+```bash filename="cmd"
+netsh interface show interface
+```
+### Set DNS Server (IPv4)
+กำหนด DNS Server แบบ Static เพื่อใช้งาน Local DNS ควรเปลี่ยนชื่อ interface "Wi-Fi" ให้ตรงกับชื่อ interface ที่ใช้อยู่
+```bash filename="cmd"
+netsh interface ip set dnsservers name="Wi-Fi" static 172.22.110.1 primary
+```
+
+### Flush DNS Cache
+ล้าง DNS cache เพื่อให้ Windows ใช้งานค่า DNS ใหม่ทันที
+```bash filename="cmd"
+ipconfig /flushdns
+```
+
+### Reset DNS to DHCP
+คืนค่า DNS ให้รับอัตโนมัติจาก DHCP เมื่อเลิกใช้งาน Local DNS
+```bash filename="cmd"
+netsh interface ip set dnsservers name="Wi-Fi" source=dhcp
+ipconfig /flushdns
+```
+
+## Configure IPv4 on Windows (GUI)
+
+### Open Network Connections
+เปิดหน้า **Network Connections** โดยใช้วิธีลัด ncpa.cpl  
+หรือเข้าเมนูผ่าน Control  > Network and Internet > Network and Sharing Center > Change Adapter Settings
+
+### Select Active Network Adapter
+เลือก Network Adapter ที่กำลังใช้งานจริง เช่น **Wi-Fi** หรือ **Ethernet** จากนั้นคลิกขวา และเลือก **Properties**
+
+### Open IPv4 Settings
+ภายในหน้าต่าง Properties เลือก **Internet Protocol Version 4 (TCP/IPv4)** แล้วคลิกปุ่ม **Properties**
+
+### IPv4 Configuration Screen
+
+<div className="mt-6">
+  <Zoom>
+    <img
+      src="/img/Network_2.png"
+      alt="IPv4 Properties"
+      style={{ width: "100%", borderRadius: "14px" }}
+    />
+  </Zoom>
+</div>
+
+ในหน้าจอ **Internet Protocol Version 4 (TCP/IPv4) Properties** จะมีตัวเลือกหลักดังนี้
+
+#### IP Address Configuration
+**Obtain an IP address automatically** ใช้กรณีรับ IP จาก DHCP (เช่น Router)
+
+**Use the following IP address** ใช้กรณีกำหนด IP แบบ Static เหมาะสำหรับเครื่องที่ต้องเข้าถึงได้เป็นประจำโดยไม่เปลี่ยน IP 
+
+#### DNS Configuration
+**Obtain DNS server address automatically** ใช้ DNS จาก Router หรือ DHCP
+
+**Use the following DNS server addresses** ใช้กำหนด DNS เอง  เช่น Local DNS Server ภายในองค์กร  
+- Preferred DNS server `172.22.110.1`  
+- Alternate DNS server `8.8.8.8`
+
+<Callout type="warning">
+หากใช้งาน Local DNS ควรกำหนด Preferred DNS เป็น IP ของ DNS Server ภายในก่อนเสมอ
+</Callout>
+
+---
+
+## Example Use Case Local DNS
+
+การตั้งค่า DNS แบบกำหนดเองช่วยให้สามารถเรียกใช้งาน Service ภายในด้วยชื่อโดเมนได้ เช่น
+
+- `app.addp.site`
+- `registry.internal`
+- `docs.lan`
+- `docs.local`
+
+เหมาะสำหรับระบบ
+- Docker
+- Reverse Proxy
+- Internal Web Application
+
+---
+
+## Tips
+
+- ตรวจสอบว่าเลือก Network Adapter ถูกต้อง (หลีกเลี่ยง Virtual Adapter หากไม่ใช้งาน)
+- ควรใช้ Static IP สำหรับ Server หรือเครื่อง Admin
+- หลังตั้งค่าเสร็จ สามารถทดสอบด้วยคำสั่ง 
+
+```bash filename="cmd"
+ping docs.addp.site
+```
+- หาก DNS ไม่ทำงานหรือทำงานช้าให้ทำการล้างข้อมูลแคช DNS เก่าของเครื่อง
+
+```bash filename="cmd"
+ipconfig /flushdns
+```
+- ตรวจสอบ IP ของเครื่องทั้งหมด
+
+```bash filename="cmd"
+ipconfig /all
+```
+- ตรวจสอบการทำงานของ DNS
+
+```bash filename="cmd"
+tracert docs.addp.site
+```
+- ตรวจสอบ IP ของ local dns โดยเลือกคำสั่ง nslookup ตามที่ต้องการ
+```bash filename="cmd"
+nslookup docs.addp.site 172.22.110.1
+# or
+nslookup docs.addp.site
+# nslookup <domain> <ip-dns>
+```
+---
+
+เมื่อกำหนดค่าเรียบร้อยกด **OK** เพื่อบันทึกการตั้งค่า Windows จะเริ่มใช้งานค่าใหม่ทันทีโดยไม่ต้อง Restart เครื่อง
+
+<Callout type="error">
+  หากเข้าใช้งานไม่ได้ ตรวจสอบการตั้งค่า **DNS** ของเครื่อง ให้ชี้มาที่ **172.22.110.1**
+</Callout>

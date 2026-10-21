@@ -1,7 +1,7 @@
 services:
   doc-app:
     container_name: document
-    image: adocs/document:1.0
+    image: adocsdeploy/document:latest
     environment:
       - NODE_ENV=production
     restart: unless-stopped

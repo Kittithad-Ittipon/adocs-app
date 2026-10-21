@@ -1,0 +1,252 @@
+import { FileTree } from "nextra/components";
+import { Callout, Steps } from "nextra/components";
+import { EmbedYoutube } from "@/components/embed-youtube";
+
+# PHP
+
+เอกสารนี้อธิบายขั้นตอนการ Deploy เว็บแอปพลิเคชัน **PHP** โดยใช้ **Docker Compose** เพียงอย่างเดียว
+(No Dockerfile Strategy) เหมาะสำหรับการใช้งานที่ต้องการความรวดเร็ว ลดความซับซ้อนในการ Build Image
+และการใช้งานภายในเครือข่าย **LAN**
+
+---
+<EmbedYoutube id="J3FPuhqg73Y" />
+
+## Project Structure
+
+โครงสร้างไฟล์สำหรับโปรเจกต์ PHP ในรูปแบบนี้ จะเน้นความกระชับ โดยตัดไฟล์ `Dockerfile` ออก และย้ายการตั้งค่า Environment ไปไว้ใน `docker-compose.yml`
+
+<FileTree>
+  <FileTree.Folder name="project" defaultOpen>
+    <FileTree.File name="docker-compose.yml" />
+    <FileTree.Folder name="app" defaultOpen>
+      <FileTree.File name=".env" />
+      <FileTree.File name="index.php" />
+      <FileTree.File name="connect.php" />
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+โครงสร้างดังกล่าวแยกหน้าที่ของไฟล์อย่างชัดเจน ไฟล์ `docker-compose.yml`
+ใช้สำหรับกำหนดการทำงานของ Container และการติดตั้ง Extension ที่จำเป็น (เช่น mysqli) ส่วนโฟลเดอร์ `app` ใช้เก็บ Source Code PHP ทั้งหมด
+
+## Application Components
+
+### Environment Variables (.env)
+สร้างไฟล์ `.env` เพื่อกำหนดค่าเชื่อมต่อฐานข้อมูล การแก้ไขค่าในไฟล์นี้จะส่งผลต่อทั้ง Container PHP และ Database
+
+```bash filename="app/.env"
+DB_HOST=database # กำหนดชื่อโฮสต์หรือเซิร์ฟเวอร์ฐานข้อมูล 
+DB_USER=your_username   # กำหนดชื่อผู้ใช้ (username) สำหรับเชื่อมต่อฐานข้อมูล
+DB_PASSWORD=your_password   # กำหนดรหัสผ่านของผู้ใช้ฐานข้อมูล
+DB_NAME=your_db_name    # กำหนดชื่อฐานข้อมูลที่จะใช้งาน
+```
+
+<Callout type="info"> 
+DB_HOST คือชื่อ Service หรือ Container Name ของฐานข้อมูลที่ต้องการเชื่อมต่อ
+</Callout>
+
+### Database Connection
+
+```bash filename="app/connect.php"
+<?php
+$host = getenv("DB_HOST");
+$user = getenv("DB_USER");
+$pass = getenv("DB_PASSWORD");
+$db   = getenv("DB_NAME");
+
+$conn = mysqli_connect($host, $user, $pass, $db);
+
+//if (!$conn) {
+//    die("Database connection failed");
+//}
+//echo "Database connected successfully";
+?>
+```
+<Callout type="info">
+  หากต้องการ **Debug** ให้เปิด **Comment**
+</Callout>
+
+### Template Index
+
+```bash filename="app/index.php"
+<?php include 'connect.php'; ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Index</title>
+</head>
+<style>
+     @import url('[https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap](https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap)');
+    *{
+        font-family: "kanit";
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    body{
+        height: 100vh;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    h1{
+        text-align: center;
+        font-size: 100px;
+    }
+    .status{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        margin-top: 20px;
+    }
+</style>
+<body>
+    <h1>Hello From PHP</h1>
+    <div class="status">
+        <?php
+            if ($conn) {
+                echo "<span class='success'>Database Connected</span>";
+            } else {
+                echo "<span class='error'>Database Connection Failed</span>";
+            }
+        ?>
+    </div>
+</body>
+</html>
+```
+
+## Docker Compose
+
+<Callout type="info">
+  **หมายเหตุการระบุพอร์ต** เนื่องจากระบบใช้การระบุตัวตนผ่าน **Local DNS**
+  ของแพลตฟอร์ม บริการ PHP รันบน Port 80 ภายในเครือข่ายโดยตรง โดยไม่ต้องทำการ
+  Map Port (Port Forwarding) ออกมายังภายนอก
+  สามารถตรวจสอบวิธีการตั้งค่าการเปิด Port ของแต่ละภาษาและเฟรมเวิร์กเพิ่มเติม ได้จากเอกสารอ้างอิง  
+  **Official Documentation:** [www.php.net/manual/en/features.commandline.webserver.php](https://www.php.net/manual/en/features.commandline.webserver.php)
+</Callout>
+
+### Image
+
+ข้อมูล Image webdevops โดยสามารถเลือกใช้ Image เวอร์ชันอื่นๆได้
+
+* **Doker Hub:** [hub.docker.com/r/webdevops/php-apache/tags](https://hub.docker.com/r/webdevops/php-apache/tags)
+
+### Upload On Platform
+
+```yaml filename="docker-compose.yml"
+version: "3.8"
+
+services:
+  php:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM webdevops/php-apache:8.2-alpine
+        WORKDIR /app
+        COPY ./app /app
+        RUN chown -R application:application /app
+    env_file:
+      - ./app/.env
+    depends_on:
+      - database
+    restart: unless-stopped
+    networks:
+      - lan-net
+
+networks:
+  lan-net:
+    external: true
+```
+
+<Callout type="warning">
+  external: true คือการเข้าร่วม Network ชื่อ lan-net ที่ถูกสร้างไว้เเล้ว
+</Callout>
+
+
+### PHP With Database
+
+```yaml filename="docker-compose.yml"
+version: "3.8"
+services:
+  php:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM webdevops/php-apache:8.2-alpine
+        WORKDIR /app
+        COPY ./app /app
+        RUN chown -R application:application /app
+    env_file:
+      - ./app/.env
+    restart: unless-stopped
+    depends_on:
+      - database
+    networks:
+      - lan-net
+ 
+  database:
+    image: mariadb:10.6
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=test_db
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=root
+    volumes:
+      - ./db_data:/var/lib/mysql
+    restart: unless-stopped
+    networks:
+      - lan-net
+ 
+networks:
+  lan-net:
+    external: true
+```
+<Callout type="warning">
+  **หมายเหตุ** คือการสร้าง Database สำหรับ PHP ขึ้นมาใหม่หากมี Database Container อยู่เเล้ว **ไม่จำเป็นต้องใช้**
+</Callout>
+
+### Full Docker Compose
+
+```yaml filename="docker-compose.yml"
+# ระบุเวอร์ชันของรูปแบบไฟล์ Docker Compose
+version: "3.8"
+
+services:
+  # บริการสำหรับรันแอปพลิเคชัน PHP
+  php:
+    # กำหนดการสร้าง Image ใหม่ (Custom Build)
+    build:
+      # ระบุตำแหน่งที่ใช้ในการ Build คือโฟลเดอร์ปัจจุบัน
+      context: .
+      # เขียนคำสั่ง Dockerfile ภายในไฟล์นี้โดยตรง (Inline)
+      dockerfile_inline: |
+        FROM webdevops/php-apache:8.2-alpine
+        WORKDIR /app
+        COPY ./app /app
+        RUN chown -R application:application /app
+    
+    # โหลดค่ากำหนด (Configuration) จากไฟล์ .env
+    env_file:
+      - ./app/.env
+    
+    # กำหนดลำดับการเริ่มทำงาน โดยรอให้บริการ database พร้อมก่อน
+    depends_on:
+      - database
+    
+    # นโยบายการเริ่มทำงานใหม่โดยอัตโนมัติหากคอนเทนเนอร์หยุดทำงาน
+    restart: unless-stopped
+    
+    # เชื่อมต่อคอนเทนเนอร์เข้ากับเครือข่ายที่กำหนด
+    networks:
+      - lan-net
+
+networks:
+  # ใช้งานเครือข่าย Docker ที่ถูกสร้างไว้แล้วภายนอก (External Network)
+  lan-net:
+    external: true
+```

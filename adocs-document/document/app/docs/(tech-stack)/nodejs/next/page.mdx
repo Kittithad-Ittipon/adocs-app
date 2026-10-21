@@ -1,0 +1,188 @@
+import { FileTree } from "nextra/components";
+import { Callout, Steps } from "nextra/components";
+import { EmbedYoutube } from "@/components/embed-youtube";
+
+# Next.js
+
+เอกสารนี้อธิบายขั้นตอนการ Deploy เว็บแอปพลิเคชัน **Next.js** โดยใช้ **Docker Compose**
+เหมาะสำหรับการใช้งานภายในเครือข่าย **LAN** การ Deploy Next.js ด้วย Docker จะใช้ **Node.js Image**
+เพื่อ Build และ Run Application ในโหมด Production
+
+---
+<EmbedYoutube id="WuP9BGWbTUM" />
+
+## Project Structure
+
+โครงสร้างไฟล์ของโปรเจกต์ Next.js (App Router) ที่ใช้ร่วมกับ Docker Compose โดยแยกส่วนของ Source Code ไว้ในโฟลเดอร์ `app` เพื่อให้ง่ายต่อการ Mount Volume
+
+<FileTree>
+  <FileTree.Folder name="project" defaultOpen>
+    <FileTree.File name="docker-compose.yml" />
+    <FileTree.Folder name="app" defaultOpen>
+      <FileTree.Folder name="app">
+        <FileTree.File name="layout.tsx" />
+        <FileTree.File name="page.tsx" />
+      </FileTree.Folder>
+      <FileTree.File name="next.config.ts" />
+      <FileTree.File name="package.json" />
+      <FileTree.File name=".gitignore" />
+      <FileTree.File name="__more" />
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+## Application Components
+
+### Package Configuration
+
+ไฟล์ `package.json` สำหรับระบุ Script การ Build และ Library ที่จำเป็น (Next.js, React)
+
+```json filename="app/package.json"
+{
+  "name": "next-docker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "14.1.0",
+    "react": "^18",
+    "react-dom": "^18"
+  }
+}
+```
+
+### Application Entry Point (Page)
+
+ตัวอย่างหน้าเว็บหลัก `page.jsx` หรือ `page.tsx`
+
+```bash filename="app/app/page.tsx"
+export default function Home() {
+  return (
+    <main style={{
+      height: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      fontFamily: 'Kanit, sans-serif'
+    }}>
+      <h1 style={{ fontSize: '80px', margin: 0 }}>Hello From Next.js</h1>
+      <p style={{ fontSize: '24px', color: '#666' }}>Docker Compose Deployment</p>
+    </main>
+  );
+}
+```
+
+## Docker Compose
+
+<Callout type="info">
+  **หมายเหตุการระบุพอร์ต** เนื่องจากระบบใช้การระบุตัวตนผ่าน **Local DNS**
+  ของแพลตฟอร์มบริการ Next.js รันบน Port 3000 ภายในเครือข่ายโดยตรง
+  โดยไม่ต้องทำการ Map Port (Port Forwarding) ออกมายังภายนอก
+  สามารถตรวจสอบวิธีการตั้งค่าการเปิด Port ของแต่ละภาษาและเฟรมเวิร์กเพิ่มเติม ได้จากเอกสารอ้างอิง  
+  **Official Documentation:** [nextjs.org/docs/app/getting-started/installation](https://nextjs.org/docs/app/getting-started/installation)
+</Callout>
+
+### Image
+
+ข้อมูล Image Node โดยสามารถเลือกใช้ Image เวอร์ชันอื่นๆได้
+
+* **Doker Hub:** [hub.docker.com/_/node/tags](https://hub.docker.com/_/node/tags)
+
+
+### Upload On Platform
+
+```bash filename="docker-compose.yml"
+version: "3.8"
+services:
+  nextjs:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM node:22-alpine
+
+        WORKDIR /app
+
+        ENV NODE_ENV=production
+        ENV NEXT_TELEMETRY_DISABLED=1
+
+        COPY ./app/package.json ./app/package-lock.json* ./
+        RUN npm ci --include=dev
+
+        COPY ./app .
+        RUN npm run build
+
+        CMD ["npm", "start"]
+
+    restart: unless-stopped
+    networks:
+      - lan-net
+
+networks:
+  lan-net:
+    external: true
+```
+
+<Callout type="warning">
+  **Command Explanation** คำสั่ง **npm install** && **npm run build** && **npm
+  start** จะทำการติดตั้ง Package และ Build Project ใหม่ทุกครั้ง ที่เริ่ม
+  Container ซึ่งอาจใช้เวลาสักครู่ในการ Start (เหมาะสำหรับการ Deploy แบบ Basic
+  ที่ไม่ต้องการสร้าง Dockerfile แยก)
+</Callout>
+
+### Full Docker Compose
+
+```bash filename="docker-compose.yml"
+# ระบุเวอร์ชันของรูปแบบไฟล์ Docker Compose
+version: "3.8"
+services:
+  nextjs:
+    build:
+      context: .
+      dockerfile_inline: |
+        # ใช้ Node.js เวอร์ชัน 22 บน Alpine Linux
+        # เพื่อให้ได้อิมเมจที่มีขนาดเล็กและเหมาะสมกับการใช้งานจริง
+        FROM node:22-alpine
+
+        # กำหนดไดเรกทอรีทำงานภายในคอนเทนเนอร์
+        WORKDIR /app
+
+        # ตั้งค่า Environment เป็น production
+        # และปิดการส่งข้อมูล telemetry ของ Next.js
+        ENV NODE_ENV=production
+        ENV NEXT_TELEMETRY_DISABLED=1
+
+        # คัดลอกไฟล์ package.json และ package-lock.json
+        # เพื่อใช้ติดตั้ง dependencies
+        COPY ./app/package.json ./app/package-lock.json* ./
+
+        # ติดตั้ง dependencies ทั้ง production และ devDependencies
+        # เนื่องจากขั้นตอน build ของ Next.js จำเป็นต้องใช้ devDependencies
+        RUN npm ci --include=dev
+
+        # คัดลอกซอร์สโค้ดทั้งหมดของแอปพลิเคชันเข้าสู่คอนเทนเนอร์
+        COPY ./app .
+
+        # สั่ง build แอปพลิเคชัน Next.js
+        RUN npm run build
+
+        # คำสั่งเริ่มต้นเมื่อคอนเทนเนอร์ทำงาน
+        CMD ["npm", "start"]
+
+
+    # ตั้งค่าให้คอนเทนเนอร์ restart อัตโนมัติหากหยุดทำงาน
+    restart: unless-stopped
+
+    # เชื่อมต่อคอนเทนเนอร์เข้ากับเครือข่ายภายนอก
+    networks:
+      - lan-net
+
+networks:
+  lan-net:
+    external: true
+```

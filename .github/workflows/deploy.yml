@@ -9,6 +9,7 @@ env:
   BACKEND_PATH: /home/admin/docker-system-container/docker-app/adocs-flask
   FRONTEND_PATH: /home/admin/docker-system-container/docker-app/adocs-next
   SERVER_PATH: /home/admin/docker-system-container/docker-app/server
+  DOCUMENT_PATH: /home/admin/docker-system-container/docker-app/adocs-document
 
 jobs:
   build-push-deploy:
@@ -45,6 +46,14 @@ jobs:
             -f ./server-response/Dockerfile \
             ./server-response
 
+      - name: Build document image
+        run: |
+          docker build \
+            -t adocsdeploy/document:latest \
+            -t adocsdeploy/document:${{ github.sha }} \
+            -f ./adocs-document/Dockerfile \
+            ./adocs-document
+
       # ===== Push =====
       - name: Push flask image
         run: |
@@ -60,6 +69,11 @@ jobs:
         run: |
           docker push adocsdeploy/server-infra:latest
           docker push adocsdeploy/server-infra:${{ github.sha }}
+
+      - name: Push document image
+        run: |
+          docker push adocsdeploy/document:latest
+          docker push adocsdeploy/document:${{ github.sha }}
 
       # ===== Stop =====
       - name: Stop backend
@@ -77,10 +91,15 @@ jobs:
           cd "$SERVER_PATH"
           docker compose down
 
-      # ===== Cleanup old images =====
-      - name: Remove old flask/next/server-infra images
+      - name: Stop document
         run: |
-          for repo in adocsdeploy/flask adocsdeploy/next adocsdeploy/server-infra; do
+          cd "$DOCUMENT_PATH"
+          docker compose down
+
+      # ===== Cleanup old images =====
+      - name: Remove old flask/next/server-infra/document images
+        run: |
+          for repo in adocsdeploy/flask adocsdeploy/next adocsdeploy/server-infra adocsdeploy/document; do
             docker images "$repo" --format '{{.ID}} {{.Tag}}' \
               | awk -v sha="${{ github.sha }}" '$2 != "latest" && $2 != sha {print $1}' \
               | sort -u \
@@ -103,5 +122,11 @@ jobs:
       - name: Start server-infra
         run: |
           cd "$SERVER_PATH"
+          docker compose pull
+          docker compose up -d
+
+      - name: Start document
+        run: |
+          cd "$DOCUMENT_PATH"
           docker compose pull
           docker compose up -d

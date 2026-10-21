@@ -1,0 +1,139 @@
+import { Callout, Steps, Tabs } from "nextra/components";
+
+# Installation
+
+Docker เป็นแอปพลิเคชันที่ช่วยลดความซับซ้อนในการจัดการกระบวนการทำงานของแอปพลิเคชันด้วยเทคโนโลยี **Container**  
+Container ช่วยให้สามารถรันแอปพลิเคชันในรูปแบบของกระบวนการที่ถูกแยกทรัพยากรออกจากกันอย่างชัดเจน
+
+แม้แนวคิดจะมีความคล้ายคลึงกับ Virtual Machine แต่ Container มีความสามารถในการพกพาสูงกว่า ใช้ทรัพยากรน้อยกว่า  
+และทำงานโดยอาศัยระบบปฏิบัติการของเครื่องที่ใช้งาน Docker (Host Operating System)
+
+---
+
+## Note
+
+เอกสารฉบับนี้อธิบายขั้นตอนการติดตั้งและใช้งาน **Docker Community Edition (Docker CE)**  
+บนระบบปฏิบัติการ Ubuntu โดยครอบคลุมตั้งแต่การติดตั้ง **Docker Engine**  
+การทำงานกับ Container และ Image รวมถึงการ Push Image ไปยัง **Docker Repository**
+
+<Callout type="info">
+  สำหรับระบบปฏิบัติการ **Ubuntu 22.04 LTS**
+  สามารถประยุกต์ใช้ขั้นตอนในเอกสารนี้ได้โดยตรง เนื่องจากเป็นเวอร์ชันที่รองรับ
+  Docker อย่างเป็นทางการ
+</Callout>
+
+---
+
+## Prerequisites
+
+ก่อนดำเนินการติดตั้ง Docker ควรมีการเตรียมความพร้อมดังต่อไปนี้
+
+- เครื่องเซิร์ฟเวอร์ที่ติดตั้งระบบปฏิบัติการ **Ubuntu** และผ่านการตั้งค่าพื้นฐานเรียบร้อยแล้ว เช่น การสร้างผู้ใช้ที่ไม่ใช่ root และสามารถใช้งานคำสั่ง `sudo` ได้
+
+- ระบบ Firewall ได้รับการตั้งค่าอย่างเหมาะสม
+
+- บัญชีผู้ใช้งาน **Docker Hub** (ในกรณีที่มีความประสงค์จะสร้าง Image และ Push ไปยัง Docker Repository)
+
+เมื่อเตรียมสภาพแวดล้อมครบถ้วนแล้ว สามารถดำเนินการติดตั้ง Docker ในขั้นตอนถัดไปได้
+
+---
+
+## Installing Docker
+
+แพ็กเกจ Docker ที่มีอยู่ใน Ubuntu Official Repository อาจไม่ใช่เวอร์ชันล่าสุด เพื่อให้ได้ Docker เวอร์ชันที่ใหม่  
+และมีความเสถียรสูงสุด จึงเลือกติดตั้ง Docker จาก **Docker Official Repository**
+
+#### Update Package Index
+
+เริ่มต้นด้วยการอัปเดตรายการแพ็กเกจของระบบเพื่อให้ระบบรับทราบข้อมูลแพ็กเกจล่าสุดจาก repository ต่าง ๆ
+
+```bash
+sudo apt update
+```
+
+#### Install Required Prerequisite Packages
+
+ติดตั้งแพ็กเกจพื้นฐานที่จำเป็น เพื่อให้ระบบสามารถใช้งาน APT ผ่านการเชื่อมต่อแบบ HTTPS  
+แพ็กเกจเหล่านี้มีหน้าที่ในการจัดการใบรับรองความปลอดภัย การดาวน์โหลดข้อมูล และการเพิ่ม repository จากภายนอก
+
+```bash
+sudo apt install apt-transport-https ca-certificates curl software-properties-common
+```
+
+#### Add Docker Official GPG Key
+
+เพิ่ม GPG Key ของ Docker เพื่อใช้ยืนยันความถูกต้องและความน่าเชื่อถือของแพ็กเกจที่ดาวน์โหลดจาก Docker Repository
+
+```bash
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+```
+
+#### Add Docker Repository to APT Sources
+
+เพิ่ม Docker Official Repository ลงในแหล่งที่มาของแพ็กเกจ (APT sources)
+เพื่อให้ระบบสามารถติดตั้ง Docker จาก repository อย่างเป็นทางการได้
+
+
+```bash
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+```
+
+เมื่อเพิ่ม repository แล้ว ระบบจะทำการอัปเดตฐานข้อมูลแพ็กเกจโดยอัตโนมัติ เพื่อรวมข้อมูลแพ็กเกจ Docker  
+จาก repository ที่เพิ่มเข้ามาใหม่ ก่อนดำเนินการติดตั้ง Docker ควรตรวจสอบแหล่งที่มาของแพ็กเกจ  
+เพื่อยืนยันว่าแพ็กเกจ Docker ที่จะติดตั้งมาจาก **Docker Official Repository** ไม่ใช่จาก Ubuntu Default Repository
+
+```bash
+apt-cache policy docker-ce
+```
+
+ระบบจะแสดงผลลัพธ์ที่มีลักษณะใกล้เคียงกับตัวอย่างด้านล่าง   
+ทั้งนี้หมายเลขเวอร์ชันของ **Docker อาจแตกต่างกันไปในแต่ละช่วงเวลา**
+
+```bash
+docker-ce:
+  Installed: (none)
+  Candidate: 5:19.03.9~3-0~ubuntu-focal
+  Version table:
+     5:19.03.9~3-0~ubuntu-focal 500
+        500 https://download.docker.com/linux/ubuntu focal/stable amd64 Packages
+```
+
+#### Install Docker Engine
+
+หลังจากตั้งค่า Repository เรียบร้อยแล้ว สามารถติดตั้ง Docker Engine ได้โดยตรงจาก Docker Official Repository
+
+```bash
+sudo apt install docker-ce
+```
+
+เมื่อการติดตั้งเสร็จสมบูรณ์ ระบบจะเริ่มต้น Docker daemon ให้อัตโนมัติ
+และตั้งค่าให้ Docker ทำงานทุกครั้งเมื่อระบบบูต
+
+#### Verify Docker Service Status
+
+ตรวจสอบสถานะการทำงานของ Docker เพื่อยืนยันว่าบริการทำงานอยู่ในสถานะปกติ
+
+```bash
+sudo systemctl status docker
+```
+
+
+หาก Docker ทำงานถูกต้อง จะปรากฏสถานะเป็น `active (running)`
+แสดงว่า Docker Engine พร้อมสำหรับการใช้งานบนระบบเรียบร้อยแล้ว
+
+```bash
+Output
+● docker.service - Docker Application Container Engine
+     Loaded: loaded (/lib/systemd/system/docker.service; enabled; vendor preset: enabled)
+     Active: active (running) since Tue 2020-05-19 17:00:41 UTC; 17s ago
+TriggeredBy: ● docker.socket
+       Docs: https://docs.docker.com
+   Main PID: 24321 (dockerd)
+      Tasks: 8
+     Memory: 46.4M
+     CGroup: /system.slice/docker.service
+             └─24321 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+```
+
+การติดตั้ง Docker ในขั้นตอนนี้ ไม่ได้ติดตั้งเฉพาะ Docker Service (Docker Daemon) เท่านั้น
+แต่ยังรวมถึงคำสั่ง docker ซึ่งเป็น Docker Client สำหรับควบคุมและจัดการ Container

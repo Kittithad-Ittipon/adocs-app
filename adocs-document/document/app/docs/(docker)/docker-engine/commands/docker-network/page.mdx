@@ -1,0 +1,53 @@
+# Docker Network
+
+## What is Docker Network?
+
+**Docker Network** คือ ระบบบริหารจัดการการเชื่อมต่อสื่อสารระหว่าง Container ด้วยกันเอง หรือระหว่าง Container กับเครือข่ายภายนอก (Internet)
+
+โดยปกติเมื่อมีการสร้าง Container ระบบ Docker จะทำการสร้างวงเครือข่ายภายในให้อัตโนมัติเพื่อให้ Container สามารถสื่อสารกันได้ อย่างไรก็ตาม การสร้างและบริหารจัดการ Network ด้วยตนเองจะช่วยเพิ่มความปลอดภัยและช่วยในการจัดกลุ่มของบริการ (Services) ให้เป็นระบบมากยิ่งขึ้น
+
+
+### Bridge (Default)
+
+เป็นรูปแบบมาตรฐานและเป็นค่าเริ่มต้น (Default) เมื่อติดตั้ง Docker โดย Container ที่อยู่ใน Bridge Network วงเดียวกันจะสามารถสื่อสารกันผ่าน IP Address ภายในได้ แต่จะไม่สามารถถูกเข้าถึงได้จากภายนอกโดยตรง (Isolated) ยกเว้นกรณีที่มีการทำ Port Mapping
+
+### Host
+เป็นรูปแบบที่มีการยกเลิกการแยกส่วนเครือข่าย (Network Isolation) ของ Container ส่งผลให้ Container ใช้งาน Network Interface และ IP Address ร่วมกับเครื่อง Host โดยตรง
+
+### None
+เป็นรูปแบบที่ตัดการเชื่อมต่อเครือข่ายทั้งหมดของ Container กล่าวคือ Container จะไม่มี IP Address และไม่สามารถเชื่อมต่ออินเทอร์เน็ตหรือสื่อสารกับ Container อื่นได้  
+* **ความเหมาะสม** งานที่ต้องการความปลอดภัยสูงสุด หรือการประมวลผลแบบ Offline
+
+
+## Basic Commands
+
+### List Networks
+คำสั่งสำหรับตรวจสอบรายชื่อ Network ทั้งหมดที่มีอยู่ในระบบ เพื่อตรวจสอบชนิดของ Driver และชื่อ Network
+
+```bash
+docker network ls
+```
+
+### Create Network
+คำสั่งสำหรับสร้าง Network วงใหม่ (โดยปกติจะเป็น Driver แบบ Bridge) เพื่อใช้ในการจัดกลุ่ม Container ให้สื่อสารกันเฉพาะภายในวงนี้
+
+```bash
+# docker network create <network_name>
+docker network create my-app-net
+```
+
+### Inspect Network
+คำสั่งสำหรับเรียกดูรายละเอียดเชิงลึกของ Network เช่น รายชื่อ Container ที่เชื่อมต่ออยู่ หรือช่วง IP Address (Subnet) ของวงเครือข่าย
+
+```bash
+# docker network inspect <network_name>
+docker network inspect bridge
+```
+
+### Remove Network
+คำสั่งสำหรับลบ Network ที่ไม่ได้ใช้งานออกจากระบบ
+
+```bash
+# docker network rm <network_name>
+docker network rm my-app-net
+```

@@ -1,0 +1,55 @@
+# Docker Container
+
+## What is Docker Container?
+
+**Docker Container** คือ "กล่อง" ที่ถูกสร้างขึ้นมาจาก Image เพื่อให้แอปพลิเคชันทำงานได้จริง (Runtime Instance) เปรียบเสมือนการนำแม่พิมพ์ (Image) มาปั๊มเป็นชิ้นงานที่จับต้องได้
+Container จะมีสภาพแวดล้อมที่แยกขาดจากกัน (Isolated) แต่ยังคงใช้ Kernel ของ OS ร่วมกัน ทำให้ใช้ทรัพยากรน้อยกว่า Virtual Machine โดยเราสามารถสั่ง Start, Stop หรือ Delete Container ได้ตลอดเวลา
+
+## Basic Commands
+
+### List Running Containers
+
+ใช้สำหรับตรวจสอบรายการ Container ที่มีสถานะกำลังทำงานอยู่ (**Running**) ณ ปัจจุบัน
+
+```bash
+docker ps
+```
+
+### List All Containers
+ใช้สำหรับดูรายการ Container ทั้งหมดที่มีในเครื่อง รวมถึงตัวที่หยุดทำงานไปแล้ว (Exited)
+
+```bash
+docker ps -a
+```
+
+### View Latest Container
+หากต้องการดูเฉพาะ Container ตัวล่าสุดที่เพิ่งมีการสร้างหรือเรียกใช้งาน ให้ใช้ Option -l (Latest)
+
+```bash
+docker ps -l
+```
+
+### Start Container
+หากต้องการเริ่มการทำงานของ Container ที่อยู่ในสถานะหยุดนิ่ง (Exited) ให้ใช้คำสั่ง docker start ตามด้วย Container ID หรือ Name
+
+```bash
+# docker start <container_id_or_name>
+docker start 1c08a7a0d0e4
+```
+
+### Stop Container
+หากต้องการหยุด Container ที่กำลังทำงานอยู่ ให้ใช้คำสั่ง docker stop ตามด้วย Container ID หรือ Name
+```bash
+# docker stop <container_id_or_name>
+docker stop nginx
+```
+> *ตัวอย่าง: การหยุด Container โดยอ้างอิงจากชื่อ dazzling_taussig*
+
+### Remove Container
+
+เมื่อไม่ต้องการใช้งาน Container นั้นแล้ว สามารถลบออกจากระบบได้ด้วยคำสั่ง docker rm
+
+```bash
+# docker rm <container_id_or_name>
+docker rm 1c08a7a0d0e4
+```

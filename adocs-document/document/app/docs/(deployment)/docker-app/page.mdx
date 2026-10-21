@@ -1,0 +1,591 @@
+import { Callout, Steps } from "nextra/components";
+import { FileTree } from "nextra/components";
+
+# Docker App
+
+ในการพัฒนา **Adocs Platform** มีการนำ Docker มาใช้งานเพื่อแยกสภาพแวดล้อมของแต่ละ Application
+โดยมีเครื่องมือต่าง ๆ ที่ถูกนำมาใช้ในการพัฒนาและเป็นเครื่องมือภายใน Platform เพื่อช่วยในการจัดการระบบ
+แต่ละ Application ถูกนำมาใช้งานในรูปแบบ **Docker images จาก Docker Hub**
+และทำการจัดการผ่านไฟล์ `docker-compose.yml`
+Container ทุกตัวถูกกำหนดให้เชื่อมต่ออยู่ภายใน Docker Network เดียวกัน คือ `lan-net`
+เพื่อให้สามารถสื่อสารกันภายในระบบได้
+
+```bash filename="docker command"
+docker network create lan-net
+```
+
+โดยรันคำสั่งนี้ภายใน Floder App นั้นเพื่อสร้างและรัน App ภายใน Container
+
+```bash filename="docker command"
+docker compose up -d
+```
+หากมีการใช้งาน Docker Compose ร่วมกับ Docker File โดย Docker ทำการสร้าง Image ก่อนจึงรัน Container โดยใช้คำสั่ง
+
+```bash filename="docker command"
+docker compose up -d --build
+```
+
+<Callout type="info">
+  สร้าง Network ชื่อ lan-net เพื่อใช้เเต่ละ Container อยู่ภายในเครือข่ายเดียวกัน
+</Callout>
+
+## Project Structure
+
+<FileTree>
+  <FileTree.Folder name="docker-app" defaultOpen>
+    <FileTree.Folder name="portainer" defaultOpen>
+      <FileTree.File name="docker-compose.yml" />
+    </FileTree.Folder>
+    <FileTree.Folder name="nginx" defaultOpen>
+      <FileTree.File name="docker-compose.yml" />
+    </FileTree.Folder>
+    <FileTree.Folder name="technitium" defaultOpen>
+      <FileTree.File name="docker-compose.yml" />
+    </FileTree.Folder>
+    <FileTree.Folder name="phpmyadmin" defaultOpen>
+      <FileTree.File name="docker-compose.yml" />
+    </FileTree.Folder>
+    <FileTree.Folder name="dashdot" defaultOpen>
+      <FileTree.File name="docker-compose.yml" />
+    </FileTree.Folder>
+    <FileTree.Folder name="dozzle" defaultOpen>
+      <FileTree.File name="docker-compose.yml" />
+      <FileTree.File name="users.yml" />
+    </FileTree.Folder>
+    <FileTree.Folder name="beszel" defaultOpen>
+      <FileTree.File name="docker-compose.yml" />
+    </FileTree.Folder>
+    <FileTree.Folder name="cloudflared" defaultOpen>
+      <FileTree.File name="docker-compose.yml" />
+    </FileTree.Folder>
+    <FileTree.Folder name="adocs-frontend" defaultOpen>
+      <FileTree.File name="docker-compose.yml" />
+      <FileTree.File name=".env" />
+    </FileTree.Folder>
+    <FileTree.Folder name="adocs-backend" defaultOpen>
+      <FileTree.File name="docker-compose.yml" />
+      <FileTree.File name=".env" />
+    </FileTree.Folder>
+    <FileTree.Folder name="adocs-document" defaultOpen>
+      <FileTree.File name="docker-compose.yml" />
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+## Docker Compose Version
+
+ในการกำหนดค่าไฟล์ `docker-compose.yml` จำเป็นต้องระบุ Compose file format version
+เพื่อกำหนดรูปแบบโครงสร้างของไฟล์และคุณสมบัติ (features) ที่สามารถใช้งานได้ภายในไฟล์ดังกล่าว
+โดยค่าที่กำหนดใน version ไม่ได้หมายถึงเวอร์ชันของ Docker Engine แต่เป็นเวอร์ชันของ Docker Compose file specification
+ที่ใช้สำหรับตีความคำสั่งและการตั้งค่าภายในไฟล์
+
+โดย **version: "3.8"** หมายถึงการใช้ **Compose file format เวอร์ชัน 3.8** ซึ่งเป็นหนึ่งในเวอร์ชันของกลุ่ม Compose v3 ที่ถูกออกแบบมาเพื่อรองรับการใช้งานกับ Docker Engine รุ่นใหม่ และสามารถใช้งานร่วมกับระบบ container orchestration ได้
+
+### Version 3.8
+
+ในการพัฒนาและจัดการระบบภายใน Platform ได้มีการเลือกใช้ Compose version 3.8 เนื่องจากเป็นเวอร์ชันที่มีความเสถียรและรองรับความสามารถที่จำเป็นสำหรับการจัดการ container หลาย service ภายในระบบเดียวกัน โดยมีเหตุผลสำคัญดังต่อไปนี้
+
+- รองรับ **Docker Engine** รุ่นปัจจุบันได้อย่างเสถียร
+  เวอร์ชัน 3.8 เป็นเวอร์ชันล่าสุดในตระกูล **Compose v3** ที่ได้รับการใช้งานอย่างแพร่หลาย และสามารถทำงานร่วมกับ Docker Engine รุ่นใหม่ได้อย่างมีประสิทธิภาพ
+
+- รองรับการกำหนด **Network** และ **Volume** อย่างเป็นระบบ
+  สามารถกำหนด Docker network สำหรับการสื่อสารระหว่าง **Container** รวมถึงการจัดการ persistent storage ผ่าน volumes ได้อย่างชัดเจนและมีโครงสร้าง
+
+- รองรับการกำหนดค่าของ **Service** ได้หลากหลาย
+  เช่น การกำหนด **environment variables, restart policy, resource limits** รวมถึงการตั้งค่าการเชื่อมต่อเครือข่ายของ Container
+
+- รองรับการทำงานในระบบที่มีหลาย Container
+  **Compose version 3.8** ถูกออกแบบมาเพื่อรองรับการทำงานของหลาย Service ภายใน Application เดียว ซึ่งเหมาะสมกับการพัฒนา Platform ที่ประกอบด้วยหลาย **Component** เช่น web server, database, monitoring tools และ service อื่น ๆ
+
+### Docker Tag
+
+#### Latest
+
+```yaml filename="latest"
+image: <image>:latest
+```
+การกำหนด **Tag** เป็น **latest** หมายถึงการใช้ **Docker Image** เวอร์ชันล่าสุดที่ผู้พัฒนาเผยแพร่บน **Docker Hub** เมื่อมีการรันคำสั่ง เช่น `docker pull` หรือ `docker compose up` ระบบจะดึง Image เวอร์ชันล่าสุดมาใช้งาน
+ทำให้ ได้รับการอัปเดตด้านความปลอดภัย (Security updates) และการแก้ไขข้อผิดพลาดโดยอัตโนมัติ และคุณสมบัติใหม่ (Features) จากผู้พัฒนาเหมาะกับเครื่องมือประเภท **Infrastructure Tools** เนื่องจากเครื่องมือเหล่านี้เป็นเครื่องมือสำหรับบริหารจัดการ **Container, Docker, Platform, Proxy**  
+และการเปลี่ยนแปลงเวอร์ชันมักไม่ส่งผลกระทบต่อโครงสร้างของแอปพลิเคชันหลัก เช่น 
+- Portainer
+- Nginx Proxy Manager
+- Technitium DNS Server
+
+#### Version
+
+```yaml filename="version"
+image: <image>:<version>
+```
+การกำหนด Tag เป็น **เวอร์ชันเฉพาะ** ทำให้ระบบมีความเสถียร (Stability) มากขึ้น ป้องกันปัญหา **Compatibility Issue** (ปัญหาความเข้ากันไม่ได้ของซอฟแวร์) 
+ทำให้สามารถควบคุมเวอร์ชันของระบบได้ชัดเจน เนื่องจากการเปลี่ยนเวอร์ชันแบบ **latest** อาจทำให้เกิดปัญหา โครงสร้างฐานข้อมูลเปลี่ยน library ไม่รองรับ และ application ทำงานผิดพลาด โดยการกำหนด **Tag  Version** ช่วยแก้ปัญหาในเรื่องนี้ เช่น
+
+- image: mariadb:11
+- image: php:8.2
+- image: node:20
+
+## Tools Application
+
+### Portainer
+
+เป็นเครื่องมือสำหรับการจัดการ **Container** ที่ทำงานอยู่บน **Docker** ผ่าน **Web Interface** ซึ่งช่วยให้ผู้ดูแลระบบหรือนักพัฒนา สามารถควบคุมและตรวจสอบการทำงานของ **Container** ได้อย่างสะดวก โดยไม่จำเป็นต้องใช้คำสั่งผ่าน **Command Line** เพียงอย่างเดียว
+
+**Docker Image :** [Portainer CE Image](https://hub.docker.com/r/portainer/portainer-ce)  
+**Docker Image :** [Portainer Other Version Image](https://hub.docker.com/u/portainer)
+
+```bash filename="portainer"
+version: '3.8'
+services:
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    ports:
+      - '9443:9443'
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Bangkok
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+      - './portainer_data:/data'
+    networks:
+      - lan-net
+
+networks:
+  lan-net:
+    external: true
+```
+
+### Nginx Proxy Manager
+
+เครื่องมือสำหรับ จัดการ **Reverse Proxy** ของ **Nginx** ผ่านหน้าเว็บ (Web UI) ทำให้สามารถตั้งค่าโดเมน, SSL, และการส่งต่อทราฟฟิกไปยังบริการต่าง ๆ ได้ง่าย โดยไม่ต้องเขียนไฟล์ config ของ Nginx ด้วยตนเอง
+เหมาะสำหรับระบบที่รันหลายบริการ เช่น Docker Containers หรือเว็บหลายตัวในเครื่องเดียว
+
+**Docker Image :** [Nginx Proxy Manager Image](https://hub.docker.com/r/jc21/nginx-proxy-manager)
+
+```bash filename="nginx"
+version: '3.8'
+services:
+  nginx-proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - ./npm_data:/data
+      - ./letsencrypt:/etc/letsencrypt
+    environment:
+      DB_MYSQL_HOST: "db"
+      DB_MYSQL_PORT: 3306
+      DB_MYSQL_USER: "admin"
+      DB_MYSQL_PASSWORD: "ct_password"
+      DB_MYSQL_NAME: "npm"
+      TZ: "Asia/Bangkok"
+    networks:
+      - lan-net
+
+networks:
+  lan-net:
+    external: true
+```
+### Technitium
+
+ซอฟต์แวร์สำหรับ ให้บริการระบบ **DNS (Domain Name System)** ซึ่งทำหน้าที่แปลงชื่อโดเมนให้เป็น **IP Address** เพื่อให้คอมพิวเตอร์สามารถติดต่อกันผ่านเครือข่ายได้
+ปกติเมื่อผู้ใช้พิมพ์ชื่อเว็บไซต์ เช่น **example.com** ระบบจะต้องแปลงชื่อโดเมนนั้นให้เป็นหมายเลข IP ก่อน จึงจะสามารถเชื่อมต่อไปยังเซิร์ฟเวอร์ปลายทางได้ โดยกระบวนการนี้ดำเนินการผ่านระบบ DNS
+Technitium DNS Server จึงทำหน้าที่เป็น DNS Server ที่สามารถติดตั้งและจัดการได้เองภายในระบบเครือข่าย
+
+**Docker Image :** [Technitium Image](https://hub.docker.com/r/technitium/dns-server)
+
+```bash filename="technitium"
+version: '3.8'
+services:
+  technitium:
+    image: technitium/dns-server:latest
+    container_name: technitium
+    ports:
+      - '53:53/udp'
+      - '53:53/tcp'
+      - '5380:5380'
+    volumes:
+      - './config:/etc/dns'
+    environment:
+      - TZ=Asia/Bangkok
+    restart: unless-stopped
+    networks:
+      - lan-net
+
+networks:
+  lan-net:
+    external: true
+```
+
+### phpMyadmin and MariaDB
+
+**MariaDB** ทำหน้าที่เป็นระบบจัดการฐานข้อมูลเชิงสัมพันธ์ (Relational Database Management System : RDBMS) สำหรับจัดเก็บและประมวลผลข้อมูลของระบบ เช่น ข้อมูลผู้ใช้งาน ข้อมูลของแอปพลิเคชัน หรือข้อมูลที่ถูกสร้างจากการทำงานของ 
+Backend Service ต่าง ๆ ภายในแพลตฟอร์ม  
+**phpMyAdmin** เป็นเครื่องมือสำหรับบริหารจัดการฐานข้อมูลผ่าน **Web Interface** ซึ่งพัฒนาด้วยภาษา PHP โดยช่วยให้ผู้พัฒนาหรือผู้ดูแลระบบสามารถจัดการฐานข้อมูลได้อย่างสะดวกผ่านเว็บเบราว์เซอร์ เช่น การสร้างและลบฐานข้อมูล การจัดการตาราง การเพิ่ม แก้ไข หรือลบข้อมูล รวมถึงการรันคำสั่ง SQL และการนำเข้าหรือส่งออกข้อมูล
+
+**Docker Image :** [phpMyAdmin Image](https://hub.docker.com/_/phpmyadmin)  
+**Docker Image :** [MariaDB Image](https://hub.docker.com/_/mariadb)
+
+```bash filename="phpmyAdmin-mariaDB"
+version: '3.8'
+services:
+  db:
+    image: mariadb:11
+    container_name: database
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 'ct_password'
+      MYSQL_DATABASE: 'npm'
+      MYSQL_USER: 'admin'
+      MYSQL_PASSWORD: 'ct_password'
+      TZ: 'Asia/Bangkok'
+    volumes:
+      - ./db_data:/var/lib/mysql
+    networks:
+      - lan-net
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:5
+    container_name: phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      UPLOAD_LIMIT: 100M
+    ports:
+      - "8080:80"
+    networks:
+      - lan-net
+    depends_on:
+      - db
+
+networks:
+  lan-net:
+    external: true
+```
+
+### File Broswer
+เป็นซอฟต์แวร์สำหรับ จัดการไฟล์ผ่าน **Web Interface** ที่สามารถทำงานอยู่ภายใน **Docker Container** ได้ โดยทำหน้าที่เสมือน **File Manager** บนเว็บ ให้ผู้ดูแลระบบหรือผู้ใช้งานสามารถเข้าถึงไฟล์ภายใน Server ได้ผ่าน Web Browser โดยไม่จำเป็นต้องใช้คำสั่งผ่าน Terminal หรือ SSH  
+
+`/srv` เป็น **Root Directory** สำหรับแสดงไฟล์ผ่าน **Web Interface** ดังนั้นไฟล์ที่อยู่ใน `/hdd/users` และ `/home/admin/docker-system-container` จะถูกแสดงในหน้าเว็บทำให้ผู้ดูแลระบบสามารถเข้าถึงและจัดการไฟล์เหล่านั้นผ่านหน้าเว็บได้โดยตรง
+
+**Docker Image :** [Filebrowser Image](https://hub.docker.com/r/filebrowser/filebrowser)
+
+```bash filename="filebrowser"
+version: "3.8"
+services:
+  fileadmin:
+    image: filebrowser/filebrowser:s6
+    container_name: fileadmin
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=Asia/Bangkok
+    ports:
+      - "8090:80"
+    volumes:
+      - /hdd/users:/srv/users
+      - /home/admin/docker-system-container:/srv/admin-home
+      - ./fileadmin-db:/database
+      - ./fileadmin-config:/config
+    restart: unless-stopped
+    networks:
+      - lan-net
+
+networks:
+  lan-net:
+    external: true
+```
+
+## Monitoring
+
+### Dashdot
+เป็นเครื่องมือสำหรับ Monitoring ระบบเซิร์ฟเวอร์ผ่าน Web Interface ที่ใช้แสดงข้อมูลสถานะของเครื่อง เช่น การใช้งาน CPU, RAM, Disk และ Network แบบเรียลไทม์ เพื่อให้ผู้ดูแลระบบสามารถตรวจสอบสุขภาพของเซิร์ฟเวอร์ได้อย่างสะดวกผ่านหน้าเว็บ
+
+**Docker Image :** [Dashdot Image](https://hub.docker.com/r/mauricenino/dashdot)
+
+```bash filename="dashdot"
+version: '3.8'
+services:
+  dash:
+    image: mauricenino/dashdot:latest
+    container_name: dashdot
+    restart: unless-stopped
+    privileged: true
+    pid: host
+    environment:
+      DASHDOT_ALWAYS_SHOW_PERCENTAGES: "true"
+      DASHDOT_SHOW_HOST: "true"
+      DASHDOT_ENABLE_CPU_TEMPS: "true"
+      DASHDOT_SHOW_DASH_VERSION: "icon_hover"
+      TZ: "Asia/Bangkok"
+    volumes:
+      - /:/mnt/host:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - lan-net
+    ports:
+      - '3001:3001'
+
+networks:
+  lan-net:
+    external: true
+```
+
+### Beszel
+เป็นเครื่องมือสำหรับ **Monitoring** และจัดการสถานะของหลายเซิร์ฟเวอร์ โดยสามารถแสดงข้อมูลการใช้งานทรัพยากรของแต่ละเครื่อง เช่น CPU, Memory, Disk และ Network พร้อมทั้งรวบรวมข้อมูลจากหลายเครื่องไว้ในหน้า Dashboard เดียว เพื่อช่วยให้ผู้ดูแลระบบสามารถตรวจสอบระบบทั้งหมดได้ง่ายขึ้น  
+**KEY** เป็น **Authentication Key** ที่ใช้สำหรับเชื่อมต่อ Agent เข้ากับ Beszel Server โดยขั้นตอนการรับ KEY มีดังนี้
+- เข้าใช้งานหน้า Dashboard ของ Beszel
+- เลือกที่เมนู Add System / Add Agent
+- ระบบสร้าง Agent Key
+- นำ KEY ที่ได้มาแทน **YOUR_KEY**
+- หลังจากแก้ไขไฟล์ docker-compose.yml แล้ว ต้องทำการ Restart Container เพื่อให้ Agent ใช้ค่า KEY ใหม่ โดยใช้คำสั่ง `docker compose up -d`
+
+**Docker Image :** [Beszel Image](https://hub.docker.com/r/henrygd/beszel)
+
+```bash filename="beszel"
+version: '3.8'
+services:
+  beszel:
+    image: 'henrygd/beszel:latest'
+    container_name: beszel
+    restart: unless-stopped
+    ports:
+      - '8070:8090'
+    volumes:
+      - ./beszel_data:/beszel_data
+    networks:
+      - lan-net
+
+  beszel-agent:
+    image: 'henrygd/beszel-agent:latest'
+    container_name: beszel-agent
+    restart: unless-stopped
+    privileged: true
+    pid: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/host:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    environment:
+      - PORT=4567
+      - KEY=YOUR_KEY
+    networks:
+      - lan-net
+
+networks:
+  lan-net:
+    external: true
+```
+
+### Dozzle
+เป็นเครื่องมือสำหรับ ดู Log ของ Docker Containers ผ่าน Web Interface โดยสามารถแสดง Log ของ Container แบบ Real-time ทำให้ผู้ดูแลระบบสามารถตรวจสอบการทำงานหรือวิเคราะห์ปัญหาของ Container ได้โดยไม่ต้องใช้คำสั่ง docker logs ผ่าน Terminal
+
+**Docker Image :** [Dozzle Image](https://hub.docker.com/r/amir20/dozzle)
+
+```bash filename="dozzle"
+version: "3.8"
+services:
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    restart: unless-stopped
+    environment:
+      - DOZZLE_AUTH_PROVIDER=simple
+      - DOZZLE_ENABLE_ACTIONS=true
+      - DOZZLE_ENABLE_SHELL=true
+      - TZ=Asia/Bangkok
+    secrets:
+      - source: users
+        target: /data/users.yml
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./dozzle-data:/data
+    networks:
+      - lan-net
+    ports:
+      - "8060:8080"
+
+secrets:
+  users:
+    file: ./users.yml
+
+networks:
+  lan-net:
+    external: true
+```
+
+เข้ารหัสผ่านแบบ **Bcrypt** โดยใช้ Software จาก Linux Ubuntu คือ apache2-utils ผ่านคำสั่ง  **sudo apt install apache2-utils**
+
+```bash filename="apache2"
+htpasswd -bnB admin password
+```
+ไฟล์ **users.yml** กำหนดค่า ผู้ใช้ admin และ ผู้ใช้อื่นๆ ตามบทบาทที่กำหนดโดยกรองการมองเห็น Container โดยการใช้ Label ใน `docker-compose.yml` เพื่อตั้งชื่อให้ Container
+```bash filename="users.yml"
+users:
+  admin:
+    password: $2y$05$Jfn4XRMlGdScPowikzAL2urNjgRF2pPSVYdnBIdo6BpZFazqMJFhK
+    roles: all
+```
+
+## Adocs Platfrom Images
+
+### Adocs Frontend
+เป็นส่วนของระบบที่ใช้สำหรับแสดงผลส่วนติดต่อผู้ใช้ **(User Interface)** ของแพลตฟอร์ม โดยพัฒนาด้วย **Next.js** ซึ่งเป็นเฟรมเวิร์กที่สร้างขึ้นบน React เพื่อใช้ในการพัฒนาเว็บแอปพลิเคชันสมัยใหม่
+**Frontend** มีหน้าที่หลักในการแสดงหน้าเว็บให้ผู้ใช้งานสามารถโต้ตอบกับระบบได้ เช่น การเข้าสู่ระบบ การจัดการโปรเจกต์ และการดูข้อมูลต่าง ๆ ของระบบ โดยจะทำการส่งคำขอ **(API Request)** ไปยัง Backend และแสดงผลข้อมูลที่ได้รับกลับมาให้กับผู้ใช้งานผ่าน Broswer
+
+**Docker Image :** [Frontend Image](https://hub.docker.com/r/adocsdeploy/next)
+
+```bash filename="adocs/next"
+version: "3.8"
+services:
+  next-app-frontend:
+    container_name: next-app-frontend
+    image: adocsdeploy/next:2.0
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    networks:
+      - lan-net
+    ports:
+      - "3000:3000"
+    
+networks:
+  lan-net:
+    external: true
+```
+
+```bash filename="env example"
+NEXTAPI_URL=
+JWT_SECRET_KEY=
+```
+
+### Adocs Backend
+เป็นส่วนที่ทำหน้าที่ประมวลผลและจัดการตรรกะการทำงานของระบบ โดยพัฒนาด้วย **Flask** ซึ่งเป็นเฟรมเวิร์กสำหรับพัฒนา **Web API** ด้วยภาษา **Python**
+ภายในระบบมีการใช้งาน **Celery** สำหรับจัดการงานที่ทำงานเบื้องหลัง **(Background Tasks)** เช่น การประมวลผลหรือการทำงานที่ใช้เวลานาน และใช้ **Redis** เป็นตัวกลางในการจัดคิวงานและเก็บข้อมูลชั่วคราว เพื่อช่วยให้ระบบสามารถทำงานได้อย่างมีประสิทธิภาพและรองรับการทำงานหลายคำสั่งพร้อมกันได้
+
+**Docker Image :** [Backend Image](https://hub.docker.com/r/adocsdeploy/flask)
+
+```bash filename="adocs/flask"
+version: "3.8"
+services:
+  flask-app-api-backend:
+    container_name: flask-app-api-backend
+    image: adocsdeploy/flask:1.1
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock 
+      - /hdd/users:/hdd/users                     
+    env_file:
+      - ./.env
+    networks:
+      - lan-net
+    depends_on:
+      - redis-broker
+
+  redis-broker:
+    container_name: redis-broker
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - lan-net
+    volumes:
+      - ./redis_data:/data
+
+  celery-worker:
+    container_name: celery-worker
+    image: adocsdeploy/flask:1.1
+    restart: unless-stopped
+    command: celery -A tasks worker --loglevel=info --concurrency=12 --max-tasks-per-child=1 --prefetch-multiplier=1 -O fair
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock 
+      - /hdd/users:/hdd/users                     
+    env_file:
+      - ./.env
+    networks:
+      - lan-net
+    depends_on:
+      - redis-broker
+      - flask-app-api-backend
+
+networks:
+  lan-net:
+    external: true
+```
+
+```bash filename="env example"
+JWT_SECRET_KEY=
+SECRET_KEY=
+DB_USER=
+DB_PASS=
+DB_HOST=
+DB_NAME=
+MAIL_USERNAME=
+MAIL_PASSWORD=
+BASE_PATH=
+NPM_URL=
+NPM_EMAIL=
+NPM_PASSWORD=
+```
+
+### Adocs Document
+**Nextra** เป็นเฟรมเวิร์กสำหรับสร้างเว็บไซต์เอกสาร **(Documentation Website)** ที่ถูกพัฒนาขึ้นมาให้ใช้งานร่วมกับ **Next.js** โดยเฉพาะ ช่วยให้สามารถสร้างเว็บไซต์เอกสารจากไฟล์ **Markdown** (.md / .mdx) ได้อย่างสะดวก เช่น การเขียนคู่มือการติดตั้ง คู่มือการใช้งาน หรือเอกสารของระบบต่าง ๆ โดยไม่ต้องพัฒนา **UI** ของเว็บเอกสารใหม่ทั้งหมด
+เฟรมเวิร์กนี้มีระบบสำเร็จรูปสำหรับเว็บไซต์เอกสาร เช่น โครงสร้างเมนูอัตโนมัติ ระบบค้นหา การแสดงโค้ด และการจัดรูปแบบหน้าเอกสาร ทำให้สามารถสร้างเว็บไซต์เอกสารได้รวดเร็วและเป็นระเบียบ
+
+**Docker Image :** [Document Image](https://hub.docker.com/r/adocsdeploy/document)
+
+```bash filename="adocs/document"
+version: "3.8"
+services:
+  doc-app:
+    container_name: document
+    image: adocsdeploy/document:1.1
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - lan-net
+    ports:
+      - "3080:3000"
+
+networks:
+  lan-net:
+    external: true
+```
+
+## WAN Access
+
+### Cloudflared
+
+เป็นโปรแกรมของ **Cloudflare** ที่ใช้สำหรับสร้าง Cloudflare Tunnel เพื่อเชื่อมต่อบริการภายในเซิร์ฟเวอร์ไปยังอินเทอร์เน็ตโดยไม่ต้องเปิดพอร์ตของเซิร์ฟเวอร์สู่ภายนอก (เช่น 80 หรือ 443) ทำให้สามารถเข้าถึงบริการภายใน เช่น Web Application หรือ Dashboard ต่าง ๆ ได้อย่างปลอดภัยผ่านโดเมนที่อยู่บน Cloudflare
+**Cloudflare Tunnel** จะสร้างการเชื่อมต่อแบบ **Outbound Connection** จากเซิร์ฟเวอร์ไปยังเครือข่ายของ Cloudflare ดังนั้นผู้ใช้งานจากอินเทอร์เน็ตจะเชื่อมต่อผ่าน Cloudflare ก่อน แล้ว Cloudflare จะส่งทราฟฟิกกลับมายังเซิร์ฟเวอร์ผ่าน Tunnel ที่ถูกสร้างไว้ ซึ่งช่วยเพิ่มความปลอดภัยและลดความเสี่ยงจากการโจมตีโดยตรงต่อเซิร์ฟเวอร์
+
+**เงื่อนไขก่อนใช้งาน Cloudflared**
+1. **Domain Name** ต้องมีชื่อโดเมนที่จดทะเบียนเเล้ว เช่น example.com  
+2. ตั้งค่า Nameserver ไปยัง **Cloudflare** โดย Domain จะต้องใช้ **Cloudflare Nameserver** เพื่อให้ Cloudflare สามารถจัดการ **DNS** และ **Tunnel** ได้  
+3. สมัครใช้งาน **Cloudflare Zero Trust** สร้าง **Tunnel** และ รับ **Tunnel Token** ให้นำ Token ไปใช้โดบแทนที่ **YOUR_TUNNEL_TOKEN**  
+4. กำหนด Public Hostname ในหน้า **Cloudflare Tunnel** ให้กำหนดชื่อ Sub Doamin เช่น `adocs.example.com` แล้วกำหนดให้ชี้ไปยัง Service ภายใน เช่น `http://nginx-proxy-manager:80`
+5. เริ่มต้น Container เมื่อแก้ไขไฟล์ **docker-compose.yml** เสร็จจากนั้นรัน **docker compose up -d**
+
+**Docker Image :** [Cloudflared Image](https://hub.docker.com/r/cloudflare/cloudflared)
+
+```bash filename="cloudflared"
+version: '3.8'
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token YOUR_TUNNEL_TOKEN
+    networks:
+      - lan-net
+
+networks:
+  lan-net:
+    external: true
+```

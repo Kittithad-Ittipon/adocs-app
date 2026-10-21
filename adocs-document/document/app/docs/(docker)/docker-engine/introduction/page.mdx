@@ -1,0 +1,129 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { Callout, Steps, Tabs } from 'nextra/components'
+
+# Introduction
+
+<div className="mt-7">
+  <Zoom>
+    <img
+      src="/img/docker-home.png"
+      alt="Docker Architecture Overview"
+      style={{ width: "100%", height: "auto", borderRadius: "15px"}}
+    />
+  </Zoom>
+</div>
+
+## What is Docker?
+
+**Docker** เป็นแพลตฟอร์ม Open-source ที่ใช้เทคโนโลยี **Containerization** ในการจัดเตรียมสภาพแวดล้อม (Environment) สำหรับการพัฒนาและติดตั้งแอปพลิเคชัน โดยรวบรวมส่วนประกอบที่จำเป็นทั้งหมด เช่น Libraries, Dependencies และ Configuration files เข้าไว้ด้วยกันในหน่วยที่เรียกว่า **"Container"**
+
+<Callout type="info">
+  **แนวคิดหลัก (Core Concept)**
+  Docker เปรียบเสมือน **"ตู้คอนเทนเนอร์ขนส่งสินค้า"** มาตรฐานสากล ที่ไม่ว่าจะขนส่งด้วยเรือ รถไฟ หรือรถบรรทุก (เปรียบเทียบกับ OS ต่างๆ เช่น Windows, Linux, macOS) สินค้าภายในจะยังคงสภาพเดิมและไม่ได้รับผลกระทบจากภายนอก
+</Callout>
+
+---
+
+## The Problems Solved by Docker
+
+ในกระบวนการพัฒนาซอฟต์แวร์แบบดั้งเดิม มักประสบปัญหาด้านความไม่สอดคล้องของระบบ (Inconsistency) ซึ่ง Docker เข้ามาแก้ไขปัญหาหลักดังนี้
+
+**1.**  **Environment Discrepancy** แก้ไขปัญหาคลาสสิก *"It works on my machine"* ที่โปรแกรมทำงานได้บนเครื่องนักพัฒนา แต่เกิดข้อผิดพลาดเมื่อนำไปรันบน Server เนื่องจากเวอร์ชันของ Software หรือ OS แตกต่างกัน  
+
+**2.**  **Resource Efficiency** การใช้ Container ใช้ทรัพยากรน้อยกว่า Virtual Machine (VM) อย่างมีนัยสำคัญ เนื่องจากไม่มีการจำลอง Hardware และ OS ใหม่ทั้งหมด  
+
+**3.**  **Isolation** แยกการทำงานของแต่ละแอปพลิเคชันออกจากกันอย่างชัดเจน ป้องกันปัญหา Library conflict (เช่น แอป A ต้องการ Python 2 แต่แอป B ต้องการ Python 3)
+
+---
+
+## Core Architecture & Components
+
+Docker ทำงานภายใต้สถาปัตยกรรมแบบ **Client-Server** ประกอบด้วยองค์ประกอบสำคัญดังนี้
+
+**1. Docker Daemon (The Server)**  
+โปรแกรมที่ทำงานอยู่เบื้องหลัง (Background Service) บนเครื่อง Host ทำหน้าที่จัดการ Docker Objects ทั้งหมด เช่น Images, Containers, Networks และ Volumes
+
+
+**2. Docker Client (The CLI)** 
+เครื่องมือที่ผู้ใช้งานใช้สั่งการผ่าน Command Line Interface (CLI) เมื่อเราพิมพ์คำสั่ง   
+(เช่น `docker run`) Client จะส่งคำสั่งนั้นไปยัง Daemon ผ่าน REST API
+
+
+**3. Docker Registry** 
+ระบบคลังสำหรับจัดเก็บและแจกจ่าย Docker Images โดยมี **Docker Hub** เป็น Registry สาธารณะที่ใหญ่ที่สุด
+
+---
+
+## Key Terminology
+
+เพื่อความเข้าใจที่ถูกต้อง จำเป็นต้องแยกแยะคำศัพท์เทคนิค 3 คำนี้
+
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+  <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
+    <h3 className="text-lg font-bold">1. Dockerfile</h3>
+    <p className="text-sm mt-2">ชุดคำสั่ง (Instruction Script) ที่ระบุขั้นตอนในการสร้าง Image เปรียบเสมือน "สูตรอาหาร"</p>
+  </div>
+  <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-900/20">
+    <h3 className="text-lg font-bold">2. Image</h3>
+    <p className="text-sm mt-2">ไฟล์ต้นแบบ (Template) ที่ได้จากการ Build Dockerfile เป็นแบบ Read-only เปรียบเสมือน "แม่พิมพ์"</p>
+  </div>
+  <div className="p-4 border rounded-lg bg-purple-50 dark:bg-purple-900/20">
+    <h3 className="text-lg font-bold">3. Container</h3>
+    <p className="text-sm mt-2">อินสแตนซ์ที่รันใช้งานจริง (Runtime Instance) สร้างมาจาก Image เปรียบเสมือน "อาหารที่ปรุงเสร็จ"</p>
+  </div>
+</div>
+
+---
+
+## Comparison Containers vs Virtual Machines
+
+<div className="mt-7">
+  <Zoom>
+    <img
+      src="/img/container_vs_vm.png"
+      alt="Docker Architecture Overview"
+      style={{ width: "100%", height: "auto", borderRadius: "15px"}}
+    />
+  </Zoom>
+</div>
+
+การเปรียบเทียบโครงสร้างเพื่อแสดงให้เห็นถึงประสิทธิภาพของ Containerization
+
+| คุณสมบัติ (Feature) | Containers (Docker) | Virtual Machines (VM) |
+| :--- | :--- | :--- |
+| **Architecture** | แชร์ OS Kernel ร่วมกับ Host | จำลอง Hardware และมี Guest OS แยกต่างหาก |
+| **ขนาด (Size)** | ขนาดเล็ก (Megabytes) | ขนาดใหญ่ (Gigabytes) |
+| **เวลาบูต (Boot Time)** | รวดเร็ว (หลักวินาที) | ช้า (หลักนาที) |
+| **ประสิทธิภาพ (Performance)** | ใกล้เคียง Native OS | ต่ำกว่าเนื่องจากผ่าน Hypervisor |
+
+---
+
+## Docker Workflow Overview
+
+กระบวนการทำงานมาตรฐานของการใช้งาน Docker มีลำดับขั้นตอนดังนี้:
+
+<Steps>
+###### Build
+นักพัฒนาเขียน **Dockerfile** เพื่อกำหนดสภาพแวดล้อม และใช้คำสั่ง `docker build` เพื่อสร้างเป็น **Docker Image**
+
+###### Ship (Push)
+นำ Image ที่สร้างเสร็จแล้ว อัปโหลด (Push) ขึ้นไปยัง **Docker Registry** เพื่อจัดเก็บและแชร์ให้กับทีม
+
+###### Run (Deploy)
+บนเครื่อง Server หรือ Cloud สามารถดึง Image (Pull) ลงมา และสั่ง `docker run` เพื่อให้แอปพลิเคชันทำงานเป็น **Container** ได้ทันที
+</Steps>
+
+---
+
+## Essential Tools in Ecosystem
+
+* **Docker Engine:** แกนหลักสำหรับการรัน Container
+* **Docker Desktop:** แอปพลิเคชัน GUI สำหรับจัดการ Docker บน Windows/Mac เหมาะสำหรับผู้เริ่มต้น
+* **Docker Compose:** เครื่องมือสำหรับจัดการแอปพลิเคชันที่ประกอบด้วยหลาย Container (Multi-container applications) โดยกำหนดผ่านไฟล์ YAML
+
+---
+
+## Conclusion
+
+Docker ได้กลายเป็นเครื่องมือพื้นฐานที่สำคัญในกระบวนการ **DevOps** และ **Modern Software Development** การเข้าใจหลักการของ Docker จะช่วยปูพื้นฐานสู่การเรียนรู้เทคโนโลยีขั้นสูงต่อไป เช่น Kubernetes (Container Orchestration) และ CI/CD Pipelines

@@ -1,0 +1,68 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { Callout } from "nextra/components";
+
+# Upload Project
+
+ฟังก์ชัน **Upload Project** เป็นส่วนสำคัญสำหรับการนำแอปพลิเคชันขึ้นสู่ระบบ (Deployment) โดยรองรับไฟล์ในรูปแบบ `.zip` ที่ภายในประกอบด้วย `docker-compose.yml` และ Source Code ตามโครงสร้างที่กำหนด
+
+ระบบถูกออกแบบมาให้จัดการ Routing และ Network โดยอัตโนมัติ ผู้ใช้งานเพียงกำหนดค่าพื้นฐานให้ถูกต้อง ระบบจะทำการสร้าง Container และกำหนด Local DNS ให้พร้อมใช้งานทันที
+
+<div className="mt-7">
+  <Zoom>
+    <img
+      src="/img/adocs-upload.png"
+      alt="Upload Project Page"
+      style={{ width: "100%", height: "auto", borderRadius: "15px" }}
+    />
+  </Zoom>
+</div>
+
+---
+
+## Configuration Guidelines
+
+การกรอกข้อมูลในส่วนนี้มีความสำคัญต่อการเชื่อมต่อระบบเครือข่ายภายใน (Local DNS)
+
+### Service Name
+ชื่อของ Service ที่ระบุในช่องนี้ **จำเป็นต้องตรงกับชื่อ Service ที่กำหนดไว้ในไฟล์ `docker-compose.yml`** เพียง 1 ชื่อเท่านั้น
+โดย Service นี้จะถูกใช้เป็น **Main Entry Point** หรือประตูทางเข้าหลักสำหรับเชื่อมต่อกับ Domain Name ที่ตั้งไว้
+
+หากในโปรเจกต์มี Container อื่นทำงานร่วมด้วย (เช่น API, Worker, Redis) ระบบจะยังคงทำงานได้ตามปกติภายใต้ Network เดียวกัน แต่การเข้าถึงผ่าน Web Browser จะถูกส่งไปยัง Service ที่ระบุในช่องนี้เท่านั้น
+
+### Deployment Mode (Upload New Project)
+ตัวเลือก **Upload New Project** ใช้สำหรับกำหนดรูปแบบการ Deploy
+
+* **กรณีเลือก (Checked)** หมายถึงการสร้างโปรเจกต์ใหม่ ระบบจะทำการจองทรัพยากรและสร้าง Service ใหม่ทั้งหมด
+* **กรณีไม่เลือก (Unchecked)** หมายถึงการอัปเดตโปรเจกต์เดิมที่มีอยู่แล้ว ระบบจะทำการลบไฟล์เดิม (Clear Storage) และแทนที่ด้วยไฟล์ใหม่ พร้อมทั้ง Re-deploy `docker-compose.yml` อีกครั้ง
+
+---
+
+## System Restrictions & Best Practices
+
+เพื่อให้ระบบทำงานได้อย่างเสถียรและปลอดภัยภายใต้ทรัพยากรที่จำกัด โปรดปฏิบัติตามข้อกำหนดทางเทคนิค
+
+### 1. Database Management
+**ไม่อนุญาตให้สร้าง Database Container (เช่น MySQL, PostgreSQL) ขึ้นเองผ่าน docker-compose.yml**
+เนื่องจากการดูแลรักษาและสำรองข้อมูล (Backup) ในรูปแบบ Container รายบุคคลทำได้ยากและเสี่ยงต่อการสูญหาย
+
+**ข้อแนะนำ** ให้ใช้งาน **Central Database Account** ที่ระบบจัดเตรียมไว้ให้ ซึ่งดูแลโดยผู้ดูแลระบบ (Admin) เพื่อประสิทธิภาพและความปลอดภัยของข้อมูลสูงสุด
+
+### 2. Network & Ports
+* **Port Mapping**: ห้ามกำหนด `ports:` ในรูปแบบ Host Port (เช่น `8080:80`) เพื่อป้องกัน Port Collision (พอร์ตชนกัน) ภายใน Server
+* **Container Name**: ห้ามระบุ `container_name` (Static Name) ไว้ภายใน file เนื่องจากอาจซ้ำกับ Container ที่มีอยู่ระบบจึงกำหนดให้
+* **Network**: ทุก Service จำเป็นต้องเข้าร่วมเครือข่าย `lan-net` เท่านั้น หากไม่ระบุ ระบบจะไม่สามารถสร้าง Local DNS ให้ได้
+
+### 3. File System & Volumes
+การ Mount Volume ต้องทำภายในโฟลเดอร์ของโปรเจกต์เท่านั้น (`./`) ห้าม Mount Path ภายนอก หรือ Path ของระบบ เพื่อความปลอดภัยของ Server
+
+### 4. Usage Quota
+เพื่อการจัดสรรทรัพยากรอย่างทั่วถึง ระบบจำกัดสิทธิ์การใช้งาน **สูงสุด 5 Containers ต่อ 1 บัญชีผู้ใช้**
+
+<Callout type="error">
+  **Warning** หากไฟล์ `docker-compose.yml` มีการตั้งค่าที่ละเมิดข้อกำหนดดังกล่าว (เช่น การ Map Port ออกมายัง Host หรือการสร้าง Database แยก) ระบบจะปฏิเสธการ Deploy และแจ้งเตือนข้อผิดพลาดทันที
+</Callout>
+
+<Callout type="info">
+  เมื่อการ Deploy เสร็จสมบูรณ์ ท่านสามารถเข้าใช้งานเว็บแอปพลิเคชันได้ทันทีผ่าน Domain Name ที่ได้กำหนดไว้
+</Callout>

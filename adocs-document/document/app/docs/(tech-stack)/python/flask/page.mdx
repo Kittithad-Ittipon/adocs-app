@@ -1,0 +1,193 @@
+import { FileTree, Callout } from "nextra/components";
+import { EmbedYoutube } from "@/components/embed-youtube";
+
+# Flask
+
+เอกสารฉบับนี้อธิบายแนวทางการติดตั้งใช้งาน (Deployment) เว็บแอปพลิเคชันที่พัฒนาด้วย **Python Flask** โดยอาศัย **Docker Compose** ในการบริหารจัดการสภาพแวดล้อม (Environment)
+
+---
+<EmbedYoutube id="pTBix-Z-F0c" />
+
+## Project Structure
+
+การจัดวางโครงสร้างไฟล์สำหรับโปรเจกต์ Flask ควรแยกส่วนของ Source Code และไฟล์กำหนดค่า (Configuration) ดังนี้
+
+<FileTree>
+  <FileTree.Folder name="project" defaultOpen>
+    <FileTree.File name="docker-compose.yml" />
+    <FileTree.Folder name="app" defaultOpen>
+      <FileTree.File name="app.py" />
+      <FileTree.File name="requirements.txt" />
+      <FileTree.Folder name="templates" defaultOpen>
+        <FileTree.File name="index.html" />
+        <FileTree.File name="__more" />
+      </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+---
+
+## Application Components
+
+ก่อนการตั้งค่า Docker จำเป็นต้องเตรียมไฟล์แอปพลิเคชันพื้นฐาน ดังนี้
+
+### Requirements
+
+ไฟล์ `requirements.txt` ใช้ระบุโมดูลที่จำเป็นต่อการทำงาน
+
+```bash filename="app/requirements.txt"
+flask
+```
+
+### Python Application
+
+ไฟล์ `app.py` ใช้สำหรับการรัน Flask
+
+```bash filename="app/app.py"
+from flask import Flask, render_template
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
+```
+
+### Template Index
+
+```bash filename="app/templates/index.html"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Index</title>
+</head>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+    *{
+        font-family: "kanit";
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    body{
+        height: 100vh;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    h1{
+        text-align: center;
+        font-size: 100px;
+    }
+</style>
+<body>
+    <h1>Hello From Flask</h1>
+</body>
+</html>
+```
+
+## Docker Compose
+
+<Callout type="info">
+  **หมายเหตุการระบุพอร์ต** เนื่องจากระบบใช้การระบุตัวตนผ่าน **Local DNS**
+  ของแพลตฟอร์ม บริการ Flask รันบน Port 5000 ภายในเครือข่ายโดยตรง โดยไม่ต้องทำการ
+  Map Port (Port Forwarding) ออกมายังภายนอก
+  สามารถตรวจสอบวิธีการตั้งค่าการเปิด Port ของแต่ละภาษาและเฟรมเวิร์กเพิ่มเติม ได้จากเอกสารอ้างอิง  
+  **Official Documentation:** [flask.palletsprojects.com](https://flask.palletsprojects.com/en/stable/quickstart/)
+</Callout>
+
+### Image
+
+ข้อมูล Image python โดยสามารถเลือกใช้ Image เวอร์ชันอื่นๆได้
+
+* **Doker Hub:** [hub.docker.com/_/python/tags](https://hub.docker.com/_/python/tags)
+
+### Upload On Platform
+
+```yaml filename="docker-compose.yml"
+version: "3.8"
+services:
+  flask:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM python:3.13-slim
+
+        WORKDIR /app
+
+        COPY ./app/requirements.txt ./
+        RUN pip install --no-cache-dir -r requirements.txt
+
+        COPY ./app .
+        CMD ["python", "app.py"]
+
+    restart: unless-stopped
+
+    networks:
+      - lan-net
+
+networks:
+  lan-net:
+    external: true
+```
+
+<Callout type="warning">
+  external: true คือการเข้าร่วม Network ชื่อ lan-net ที่ถูกสร้างไว้เเล้ว{" "}
+</Callout>
+
+### Full Docker Compose
+
+```yaml filename="docker-compose.yml"
+# ระบุเวอร์ชันของรูปแบบไฟล์ Docker Compose
+version: "3.8"
+services:
+  # บริการ Web Server สำหรับรัน Python Flask Application
+  flask:
+    # ส่วนการกำหนดค่าเพื่อสร้าง Image (Inline Dockerfile)
+    build:
+      context: . # ขอบเขตการ Build คือไดเรกทอรีปัจจุบัน
+      dockerfile_inline: |
+        # ใช้ Python 3.13 รุ่น slim (ขนาดเล็ก)
+        FROM python:3.13-slim
+
+        # กำหนดไดเรกทอรีทำงานภายใน Container
+        WORKDIR /app
+
+        # 1. Copy requirements.txt เพื่อใช้ประโยชน์จาก Docker Cache
+        COPY ./app/requirements.txt ./
+
+        # 2. ติดตั้ง Library ที่จำเป็น
+        RUN pip install --no-cache-dir -r requirements.txt
+
+        # 3. Copy Source Code ทั้งหมด
+        COPY ./app .
+
+        # คำสั่งรัน Flask Application
+        CMD ["python", "app.py"]
+
+    # ตั้งชื่อ Container
+    container_name: flask-app
+
+    # ให้ Container restart อัตโนมัติ
+    restart: unless-stopped
+
+    # เปิดพอร์ตภายใน Container (ไม่ map ออก Host)
+    expose:
+      - "5000"
+
+    # เชื่อมต่อกับ Docker Network
+    networks:
+      - lan-net
+
+networks:
+  # Docker Network ที่สร้างไว้ล่วงหน้า
+  lan-net:
+    external: true
+```

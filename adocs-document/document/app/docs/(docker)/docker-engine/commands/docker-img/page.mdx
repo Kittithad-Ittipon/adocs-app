@@ -1,0 +1,90 @@
+# Docker Image
+
+## What is Docker Image?
+**Docker Image** เปรียบเสมือน "แม่พิมพ์" หรือ "พิมพ์เขียว" (Template) แบบ Read-only ที่บรรจุ Source Code, Libraries, Dependencies, เครื่องมือ และไฟล์ต่างๆ ที่จำเป็นสำหรับการรันแอปพลิเคชันเอาไว้ภายใน Image หนึ่งตัวจะถูกนำไปสร้างเป็น Container ได้หลายตัว โดย Image มักจะถูกสร้างขึ้นมาจากคำสั่ง docker build หรือดึงมาจาก Registry กลางอย่าง Docker Hub
+
+## Basic Commands      
+
+### Search
+
+ใช้สำหรับค้นหารายชื่อ Image ที่เปิดให้ใช้งานบน Registry (เช่น Docker Hub) เพื่อตรวจสอบความถูกต้องของชื่อและรายละเอียดก่อนทำการดาวน์โหลด
+
+```bash
+# docker search <image_name>
+docker search ubuntu
+```
+
+### Pull
+
+ใช้สำหรับดาวน์โหลด Image จาก Registry มาจัดเก็บไว้ในเครื่อง (Local Host) หากไม่ระบุเวอร์ชัน (Tag) ระบบจะทำการดึงเวอร์ชันล่าสุด (latest) มาให้โดยอัตโนมัติ
+
+```bash
+# docker pull <image_name>:<tag>
+docker pull ubuntu
+```
+
+### List Images
+
+แสดงรายชื่อ Image ทั้งหมดที่มีอยู่ในเครื่อง พร้อมรายละเอียดสำคัญ ได้แก่ Repository Name, Tag, Image ID, วันที่สร้าง และขนาดไฟล์
+
+```bash
+docker images
+```
+
+### Remove Image
+
+ใช้สำหรับลบ Image ที่ไม่ต้องการออกจากเครื่องเพื่อคืนพื้นที่จัดเก็บ ข้อควรระวัง: ต้องทำการหยุด (Stop) และลบ (Remove) Container ที่กำลังเรียกใช้งาน Image นั้นๆ ออกก่อน จึงจะสามารถลบ Image ได้สมบูรณ์
+
+```bash
+# docker rmi <image_name_or_id>
+docker rmi ubuntu
+```
+### Build
+สร้าง Docker Image ขึ้นใหม่โดยอ้างอิงชุดคำสั่งจากไฟล์ Dockerfile
+
+* -t ใช้สำหรับกำหนดชื่อ (Repository) และเวอร์ชัน (Tag) ให้กับ Image
+
+* . (จุด) หมายถึงการระบุตำแหน่ง Build Context ซึ่งในที่นี้คือ Directory ปัจจุบัน
+
+```bash
+# docker build -t <target_image_name> .
+docker build -t my-app .
+```
+### Tag
+
+ใช้สำหรับสร้างชื่ออ้างอิงใหม่ (Alias) ให้กับ Image เดิม เพื่อเตรียมพร้อมสำหรับการอัปโหลด (Push) หรือเพื่อการจัดการเวอร์ชัน (Versioning) ที่ชัดเจน
+
+```bash
+# docker tag <source_image> <target_image>
+docker tag my-flask-app:latest myuser/my-flask-app:v1.0
+```
+### Push
+
+อัปโหลด Image จากเครื่อง Local ขึ้นไปยัง Registry (เช่น Docker Hub หรือ Private Registry) เพื่อสำรองข้อมูลหรือแชร์ให้ผู้อื่นนำไปใช้งาน
+
+```bash
+# docker push <image_name>
+docker push myuser/my-flask-app:v1.0
+```
+### Inspect
+
+เรียกดูข้อมูลจำเพาะ (Metadata) และค่าการตั้งค่าเชิงลึกของ Image ในรูปแบบ JSON เช่น Environment Variables, Network Settings หรือ Architecture ของระบบ
+
+```bash
+# docker inspect <image_name>
+docker inspect ubuntu
+```
+### History
+
+แสดงประวัติการเปลี่ยนแปลงของ Image ในแต่ละเลเยอร์ (Layer) เพื่อตรวจสอบว่า Image ถูกสร้างขึ้นจากคำสั่งใดบ้าง และแต่ละคำสั่งใช้พื้นที่จัดเก็บเท่าใด
+
+```bash
+# docker history <image_name>
+docker history my-app
+```
+### Prune
+คำสั่งสำหรับทำความสะอาดระบบ โดยการลบ Image ที่ตกค้างและไม่ได้ถูกใช้งาน (Dangling Images) ออกทั้งหมด เพื่อเรียกคืนพื้นที่ว่างให้ Disk
+
+```bash
+docker image prune
+```

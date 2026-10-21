@@ -1,0 +1,196 @@
+import { FileTree } from "nextra/components";
+import { Callout, Steps } from "nextra/components";
+import { EmbedYoutube } from "@/components/embed-youtube";
+
+# Express.js
+
+เอกสารนี้อธิบายขั้นตอนการ Deploy เว็บแอปพลิเคชัน **Node.js (Express)** โดยใช้ **Docker Compose**
+เหมาะสำหรับการใช้งานภายในเครือข่าย **LAN** การ Deploy Express ด้วย Docker จะใช้ **Node.js Image**
+เพื่อประมวลผลแอปพลิเคชันและให้บริการผ่านโปรโตคอล HTTP
+
+---
+<EmbedYoutube id="UJruWDOGBFk" />
+
+## Project Structure
+
+โครงสร้างไฟล์ของโปรเจกต์ Express ที่ใช้ร่วมกับ Docker Compose ควรแยกส่วนของ Source Code และไฟล์กำหนดค่า (Configuration) อย่างชัดเจน เพื่อให้ง่ายต่อการดูแลและแก้ไขในอนาคต
+
+<FileTree>
+  <FileTree.Folder name="project" defaultOpen>
+    <FileTree.File name="docker-compose.yml" />
+    <FileTree.Folder name="app" defaultOpen>
+      <FileTree.File name="app.js" />
+      <FileTree.File name="index.html" />
+      <FileTree.File name="package.json" />
+      <FileTree.File name="__more" />
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+โครงสร้างดังกล่าวแยกหน้าที่ของไฟล์อย่างชัดเจน ไฟล์ `docker-compose.yml`
+ใช้สำหรับกำหนดการทำงานของ Container โฟลเดอร์ `app` ใช้เก็บ Source Code และ Dependencies ทั้งหมดที่ Node.js จะนำไปประมวลผล
+
+## Application Components
+
+### Package Configuration
+
+ไฟล์สำหรับระบุข้อมูลโปรเจกต์และ `Library` ที่จำเป็นต้องติดตั้ง
+
+```json filename="app/package.json"
+{
+  "name": "express-docker",
+  "version": "1.0.0",
+  "main": "app.js",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
+```
+
+### Application Entry Point
+
+ไฟล์หลักสำหรับการทำงานของ `Express Server`
+
+```bash filename="app/app.js"
+const express = require('express');
+const path = require('path');
+const app = express();
+const port = 3000;
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server running at http://0.0.0.0:${port}/`);
+});
+```
+
+### Template Index
+
+```bash filename="/app/index.html"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Index</title>
+</head>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+    *{
+        font-family: "kanit";
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    body{
+        height: 100vh;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    h1{
+        text-align: center;
+        font-size: 100px;
+    }
+</style>
+<body>
+    <h1>Hello From Express</h1>
+</body>
+</html>
+```
+
+## Docker Compose
+
+<Callout type="info">
+  **หมายเหตุการระบุพอร์ต** เนื่องจากระบบใช้การระบุตัวตนผ่าน **Local DNS**
+  ของแพลตฟอร์มบริการ Express รันบน Port 3000 ภายในเครือข่ายโดยตรง
+  โดยไม่ต้องทำการ Map Port (Port Forwarding) ออกมายังภายนอก
+  สามารถตรวจสอบวิธีการตั้งค่าการเปิด Port ของแต่ละภาษาและเฟรมเวิร์กเพิ่มเติม ได้จากเอกสารอ้างอิง  
+  **Official Documentation:** [expressjs.com/en/starter/hello-world.html](https://expressjs.com/en/starter/hello-world.html)
+</Callout>
+
+### Image
+
+ข้อมูล Image Node โดยสามารถเลือกใช้ Image เวอร์ชันอื่นๆได้
+
+* **Doker Hub:** [hub.docker.com/_/node/tags](https://hub.docker.com/_/node/tags)
+
+### Upload On Platform
+
+```yaml filename="docker-compose.yml"
+version: "3.8"
+services:
+  express:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM node:22-alpine
+
+        WORKDIR /app
+
+        COPY ./app/package.json ./app/package-lock.json* ./
+        RUN npm ci --omit=dev || npm install --production
+
+        COPY ./app .
+        
+        CMD ["node", "app.js"]
+
+    restart: unless-stopped
+    networks:
+      - lan-net
+
+networks:
+  lan-net:
+    external: true
+```
+
+<Callout type="warning">
+  external: true คือการเข้าร่วม Network ชื่อ lan-net ที่ถูกสร้างไว้เเล้ว
+</Callout>
+
+### Full Docker Compose
+
+```yaml filename="docker-compose.yml"
+version: "3.8"
+services:
+  # บริการ Web Server สำหรับรัน Node.js Express Application
+  express:
+    # กำหนดค่าเพื่อสร้าง Image แบบ Inline Dockerfile
+    build:
+      context: .
+      dockerfile_inline: |
+        # ใช้ Node.js 22 (alpine image ขนาดเล็ก)
+        FROM node:22-alpine
+
+        # กำหนดไดเรกทอรีทำงานภายใน Container
+        WORKDIR /app
+
+        # Copy ไฟล์ package เพื่อเตรียมติดตั้ง dependencies
+        COPY ./app/package.json ./app/package-lock.json* ./
+
+        # ติดตั้ง dependencies (production only)
+        RUN npm ci --omit=dev || npm install --production
+
+        # Copy source code ทั้งหมดเข้า container
+        COPY ./app .
+
+        # คำสั่งรัน Express application
+        CMD ["node", "app.js"]
+        
+    restart: unless-stopped
+
+    expose:
+      - "3000"
+
+    # เชื่อมต่อกับ network ที่สร้างไว้แล้ว
+    networks:
+      - lan-net
+
+networks:
+  # เครือข่าย Docker ที่มีอยู่แล้ว
+  lan-net:
+    external: true
+```

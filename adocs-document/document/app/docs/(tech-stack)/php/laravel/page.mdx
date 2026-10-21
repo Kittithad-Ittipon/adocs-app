@@ -1,0 +1,334 @@
+import { FileTree } from "nextra/components";
+import { Callout, Steps } from "nextra/components";
+import { EmbedYoutube } from "@/components/embed-youtube";
+
+# Laravel
+
+เอกสารนี้อธิบายขั้นตอนการ Deploy เว็บแอปพลิเคชัน **Laravel** โดยใช้ **Docker Compose** เพียงไฟล์เดียว (Inline Build Strategy) ร่วมกับ **FrankenPHP** ซึ่งเป็น Server ประสิทธิภาพสูงที่รวม PHP Runtime และ Caddy Web Server ไว้ด้วยกัน
+
+วิธีนี้เหมาะสำหรับการใช้งานที่ต้องการความรวดเร็ว ลดความซับซ้อนในการจัดการ `Dockerfile` แยก และการใช้งานภายในเครือข่าย **LAN** หรือ Platform ที่รองรับ Docker Compose Build
+
+---
+<EmbedYoutube id="BrSujm2_1S0" />
+
+## Project Structure
+
+โครงสร้างดังกล่าวแยกหน้าที่ของไฟล์อย่างชัดเจน ไฟล์ `docker-compose.yml` ใช้สำหรับกำหนดการ Build Image, ติดตั้ง Extension และการรัน Server ส่วนโฟลเดอร์ `app` ใช้เก็บ Source Code Laravel ทั้งหมด
+
+<FileTree>
+  <FileTree.Folder name="project" defaultOpen>
+    <FileTree.File name="docker-compose.yml" />
+    <FileTree.File name=".dockerignore" />
+    <FileTree.Folder name="app" defaultOpen>
+      <FileTree.File name=".env" />
+      <FileTree.Folder name="app" defaultOpen>
+        <FileTree.Folder name="Providers" defaultOpen>
+          <FileTree.File name="AppServiceProvider.php" />
+        </FileTree.Folder>
+      </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+## Application Components
+
+### Environment Variables (.env)
+
+แก้ไขไฟล์ `.env` ในโฟลเดอร์ `app` เพื่อกำหนดค่าเชื่อมต่อฐานข้อมูลและตั้งค่าพื้นฐานของ Laravel
+
+```bash filename="app/.env"
+APP_NAME=Laravel
+APP_ENV=production
+APP_KEY=base64:your_generated_key_here  # ถูกกำหนดจาก Laravel
+APP_DEBUG=false
+APP_URL=https://your_url.addp.site  # ชื่อโดเมนที่ตั้งกับแพลตฟอร์ม
+ASSET_URL=https://your_url.addp.site  # ชื่อโดเมนที่ตั้งกับแพลตฟอร์ม
+
+DB_CONNECTION=mysql   # ระบุชนิดฐานข้อมูลที่จะเชื่อมต่อ ในที่นี้คือ MySQL
+DB_HOST=database      # กำหนดชื่อโฮสต์หรือเซิร์ฟเวอร์ฐานข้อมูล
+DB_PORT=3306          # พอร์ตที่ใช้เชื่อมต่อ MySQL ค่าเริ่มต้นคือ 3306
+DB_DATABASE=your_db_name   # กำหนดชื่อฐานข้อมูลที่จะใช้งาน
+DB_USERNAME=your_username  # กำหนดชื่อผู้ใช้ (username) สำหรับเชื่อมต่อฐานข้อมูล
+DB_PASSWORD=your_password  # กำหนดรหัสผ่านของผู้ใช้ฐานข้อมูล
+```
+
+<Callout type="warning">
+  ห้ามเปิด APP_DEBUG=true บน Production เพราะอาจทำให้ข้อมูล Environment
+  เผยแพร่สู่สาธารณะได้
+</Callout>
+
+<Callout type="info">
+  DB_HOST คือชื่อ Service หรือ Container Name
+  ของฐานข้อมูลที่อยู่ในเครือข่ายเดียวกัน (lan-net)
+</Callout>
+
+### Laravel Package (composer)
+
+ตัวอย่างไฟล์ `composer` ในโฟลเดอร์ `app` โดยเป็นแพ็กเกจของ Laravel
+
+```bash filename="app/composer"
+   "require": {
+        "php": "^8.2",
+        "laravel/framework": "^12.0",
+        "laravel/tinker": "^2.10.1"
+    },
+    "require-dev": {
+        "fakerphp/faker": "^1.23",
+        "laravel/pail": "^1.2.2",
+        "laravel/pint": "^1.24",
+        "laravel/sail": "^1.41",
+        "mockery/mockery": "^1.6",
+        "nunomaduro/collision": "^8.6",
+        "phpunit/phpunit": "^11.5.3"
+    },
+```
+
+### AppServiceProvider
+
+การกำหนด URL::forceScheme('https') ในไฟล์ AppServiceProvider.php มีวัตถุประสงค์เพื่อให้ Laravel สร้าง URL ทั้งหมดในรูปแบบ HTTPS เมื่อแอปพลิเคชันถูกนำไปใช้งานในสภาพแวดล้อมที่ไม่ใช่ Local โดยเฉพาะกรณีที่มี Reverse Proxy หรือ Container เป็นตัวกลางซึ่งช่วยป้องกันปัญหา Mixed Content และทำให้ระบบทำงานได้อย่างถูกต้องในสภาพแวดล้อม Production  
+
+
+```bash filename="app/app/Providers/AppServiceProvider.php"
+<?php
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\URL;
+
+class AppServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        //
+    }
+
+    public function boot(): void
+    {
+        if (config('app.env') !== 'local') {
+            URL::forceScheme('https');
+        }
+    }
+}
+```
+
+## Docker Compose
+
+<Callout type="info">
+  หมายเหตุการระบุพอร์ต เนื่องจากระบบใช้การระบุตัวตนผ่าน Local DNS ของแพลตฟอร์ม
+  บริการ Laravel จะรันบน Port 80 ภายในเครือข่ายโดยตรง โดยใช้ Caddy Server
+  ที่ฝังมากับ FrankenPHP
+  สามารถตรวจสอบวิธีการตั้งค่าการเปิด Port ของแต่ละภาษาและเฟรมเวิร์กเพิ่มเติม ได้จากเอกสารอ้างอิง
+  **Official Documentation:** [frankenphp.dev/docs/config/](https://frankenphp.dev/docs/config/)
+</Callout>
+
+### Image
+
+ข้อมูล Image FrankenPHP โดยสามารถเลือกใช้ Image เวอร์ชันอื่นๆได้
+
+* **Doker Hub:** [hub.docker.com/r/dunglas/frankenphp/tags](https://hub.docker.com/r/dunglas/frankenphp/tags)  
+
+### Upload On Platform
+
+```yaml filename=".dockerignore"
+app/node_modules
+.dockerignore
+```
+
+<Callout type="error">
+  **ข้อกำหนดสำคัญเรื่องเวอร์ชัน** จำเป็นต้องดำเนินการภายใต้สภาพแวดล้อม **PHP
+  เวอร์ชัน 8.4 ขึ้นไปเท่านั้น** เนื่องจากข้อกำหนดของไลบรารีพื้นฐาน
+  (Dependencies) ที่ระบุไว้ในไฟล์ <code>composer.lock</code>{" "}
+  การใช้งานเวอร์ชันที่ต่ำกว่า 8.4
+  จะส่งผลให้กระบวนการติดตั้งและการทำงานของระบบล้มเหลว
+</Callout>
+
+```yaml filename="docker-compose.yml"
+version: "3.8"
+services:
+  app:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM dunglas/frankenphp:1.11-php8.4-bookworm
+        ENV COMPOSER_ALLOW_SUPERUSER=1
+        WORKDIR /app
+        RUN install-php-extensions pdo_mysql mbstring bcmath intl zip gd pcntl
+        COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+        RUN apt-get update && apt-get install -y curl && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs
+        COPY ./app/composer.json ./app/composer.lock ./
+        RUN composer install --no-dev --no-scripts --no-autoloader
+        COPY ./app .
+        RUN composer dump-autoload --optimize
+        RUN npm install && npm run build
+        RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
+
+    environment:
+      - SERVER_NAME=:80
+      - WEB_DOCUMENT_ROOT=/app/public
+    env_file:
+      - ./app/.env
+    command: >
+      sh -c "
+      php artisan migrate --force &&
+      php artisan optimize &&
+      frankenphp run --config /etc/caddy/Caddyfile
+      "
+    restart: unless-stopped
+    networks:
+      - lan-net
+
+networks:
+  lan-net:
+    external: true
+```
+
+<Callout type="warning">
+  composer install ถูกใส่ไว้ในขั้นตอน Build เพื่อป้องกันปัญหา Error 500
+  จากการขาดไฟล์ vendor เมื่อนำขึ้น Platform{" "}
+</Callout>
+
+### Laravel With Database
+
+กรณีต้องการสร้าง Database พร้อมกับ Laravel ในชุดเดียวกัน
+
+```yaml filename="docker-compose.yml"
+version: "3.8"
+services:
+  app:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM dunglas/frankenphp:1.11-php8.4-bookworm
+        ENV COMPOSER_ALLOW_SUPERUSER=1
+        WORKDIR /app
+        RUN install-php-extensions pdo_mysql mbstring bcmath intl zip gd pcntl
+        COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+        RUN apt-get update && apt-get install -y curl && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs && rm -rf /var/lib/apt/lists/*
+        COPY ./app/composer.json ./app/composer.lock ./
+        COPY ./app/package.json ./app/package-lock.json ./
+        RUN composer install --no-dev --no-scripts --no-autoloader
+        RUN npm install
+        COPY ./app .
+        RUN composer dump-autoload --optimize
+        RUN npm run build
+        RUN rm -rf node_modules
+        RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
+
+    environment:
+      - SERVER_NAME=:80
+      - WEB_DOCUMENT_ROOT=/app/public
+    env_file:
+      - ./app/.env
+    depends_on:
+      database:
+        condition: service_healthy
+    command: >
+      sh -c "
+      php artisan migrate --force &&
+      php artisan optimize:clear &&
+      frankenphp run
+      "
+    restart: unless-stopped
+    networks:
+      - lan-net
+
+  database:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: your_database
+      MYSQL_USER: your_user
+      MYSQL_PASSWORD: your_password
+    volumes:
+      - ./database:/var/lib/mysql
+    networks:
+      - lan-net
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+networks:
+  lan-net:
+    external: true
+```
+
+### Full Docker Compose
+
+```yaml filename="docker-compose.yml"
+# ระบุเวอร์ชันของ Docker Compose
+version: "3.8"
+
+services:
+  # บริการสำหรับรัน Laravel Application
+  app:
+    build:
+      context: .
+      dockerfile_inline: |
+        # ใช้ Base Image ของ FrankenPHP ที่มี PHP 8.4
+        FROM dunglas/frankenphp:1.11-php8.4-bookworm
+
+        # อนุญาตให้ Composer ทำงานด้วยสิทธิ์ root
+        ENV COMPOSER_ALLOW_SUPERUSER=1
+
+        # กำหนดโฟลเดอร์ทำงานภายใน Container
+        WORKDIR /app
+
+        # ติดตั้ง PHP Extensions ที่ Laravel ต้องใช้
+        RUN install-php-extensions pdo_mysql mbstring bcmath intl zip gd pcntl
+
+        # คัดลอก Composer จาก Image ภายนอก
+        COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+        # ติดตั้ง Node.js สำหรับ Build Frontend (Vite)
+        RUN apt-get update && apt-get install -y curl && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs
+
+        # คัดลอกไฟล์กำหนด Dependencies ของ PHP
+        COPY ./app/composer.json ./app/composer.lock ./
+
+        # ติดตั้ง PHP Dependencies
+        RUN composer install --no-dev --no-scripts --no-autoloader
+
+        # คัดลอกซอร์สโค้ด Laravel เข้าสู่ Container
+        COPY ./app .
+
+        # สร้าง Autoload และ Build Frontend Assets
+        RUN composer dump-autoload --optimize
+        RUN npm install && npm run build
+
+        # กำหนดสิทธิ์ให้โฟลเดอร์ที่ Laravel ใช้งาน
+        RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
+
+    # กำหนดค่าการทำงานของ Web Server
+    environment:
+      - SERVER_NAME=:80
+      - WEB_DOCUMENT_ROOT=/app/public
+
+    # โหลดตัวแปรสภาพแวดล้อมจากไฟล์ .env
+    env_file:
+      - ./app/.env
+
+    # คำสั่งเริ่มต้นระบบ (อัปเดตฐานข้อมูล และเริ่ม FrankenPHP)
+    command: >
+      sh -c "
+      php artisan migrate --force &&
+      php artisan optimize &&
+      frankenphp run --config /etc/caddy/Caddyfile
+      "
+
+    # กำหนดให้ Container เริ่มใหม่อัตโนมัติเมื่อหยุดทำงาน
+    restart: unless-stopped
+
+    # เชื่อมต่อกับเครือข่ายภายในระบบ
+    networks:
+      - lan-net
+
+# การกำหนดเครือข่ายสำหรับ Container
+networks:
+  lan-net:
+    # ใช้เครือข่ายภายนอกที่สร้างไว้ล่วงหน้า
+    external: true
+```

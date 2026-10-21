@@ -1,0 +1,125 @@
+import { FileTree } from "nextra/components";
+import { Callout } from "nextra/components";
+
+# MySQL
+
+เอกสารนี้อธิบายการ Deploy ฐานข้อมูล **MariaDB** พร้อมเครื่องมือจัดการ **phpMyAdmin**
+โดยทำงานร่วมกันภายใต้ Network เดียวกัน เหมาะสำหรับการสร้าง Database Server ส่วนตัว
+หรือเพื่อการทดสอบระบบ
+
+<Callout type="warning">
+  **ข้อควรทราบ** หากแพลตฟอร์มหรือองค์กรของคุณมีบริการ **Central Database** (ฐานข้อมูลกลาง) ให้บริการอยู่แล้ว  
+  **ไม่จำเป็นต้อง Deploy ส่วนนี้** สามารถนำ Credentials (Host, User, Pass) ไปใช้งานกับ Application ได้ทันที
+</Callout>
+
+---
+
+## Project Structure
+
+โครงสร้างไฟล์ `docker-compose.yml` และโฟลเดอร์สำหรับเก็บข้อมูล (Mount Volume) ที่จะถูกสร้างขึ้นอัตโนมัติ
+
+<FileTree>
+  <FileTree.Folder name="mysql-project" defaultOpen>
+    <FileTree.File name="docker-compose.yml" />
+    <FileTree.Folder name="mysql_data (auto)" />
+  </FileTree.Folder>
+</FileTree>
+
+### Image
+
+ข้อมูล Image mariadb โดยสามารถเลือกใช้ Image เวอร์ชันอื่นๆได้
+
+* **Doker Hub:** [hub.docker.com/_/mariadb/tags](https://hub.docker.com/_/mariadb/tags)
+
+
+## Docker Compose
+
+การตั้งค่านี้จะสร้าง Container 2 ตัว คือ `db` (MariaDB) และ `phpmyadmin` โดยเชื่อมต่อกันผ่าน Network ภายใน และมีการระบุ **Labels** สำหรับการจัดการในระดับแพลตฟอร์ม
+
+```yaml filename="docker-compose.yml"
+version: "3.8" # ระบุเวอร์ชันของ Docker Compose
+
+services:
+  db: # บริการฐานข้อมูล MariaDB
+    image: mariadb:11 # อิมเมจ MariaDB
+    container_name: database # ชื่อคอนเทนเนอร์
+    restart: unless-stopped # รีสตาร์ทอัตโนมัติ
+
+    environment: # ค่าการตั้งค่าฐานข้อมูล
+      MYSQL_ROOT_PASSWORD: root_password # รหัสผ่านผู้ดูแลระบบ
+      MYSQL_DATABASE: example_db # ชื่อฐานข้อมูลเริ่มต้น
+      MYSQL_USER: db_user # ชื่อผู้ใช้งานฐานข้อมูล
+      MYSQL_PASSWORD: user_password # รหัสผ่านผู้ใช้งาน
+      TZ: Asia/Bangkok # เขตเวลา
+
+    volumes:
+      - ./mysql_data:/var/lib/mysql # จัดเก็บข้อมูลถาวร
+
+    networks:
+      - lan-net # ใช้เครือข่ายภายในชื่อ lan-net
+
+  phpmyadmin: # เครื่องมือจัดการฐานข้อมูล
+    image: phpmyadmin/phpmyadmin # อิมเมจ phpMyAdmin
+    container_name: phpmyadmin # ชื่อคอนเทนเนอร์
+    restart: unless-stopped # รีสตาร์ทอัตโนมัติ
+
+    environment:
+      PMA_HOST: db # ชื่อบริการฐานข้อมูล
+      UPLOAD_LIMIT: 100M # ขนาดไฟล์อัปโหลดสูงสุด
+
+    ports:
+      - "8080:80" # พอร์ตสำหรับเข้าใช้งาน
+
+    networks:
+      - lan-net # ใช้เครือข่ายภายในชื่อ lan-net
+
+    depends_on:
+      - db # รอฐานข้อมูลพร้อมก่อน
+
+networks:
+  lan-net:
+    external: true # ใช้เครือข่ายที่สร้างไว้แล้ว
+```
+
+<Callout type="info">
+  ในระบบจริง ควรเปลี่ยนค่าทั้งหมดให้เป็นรหัสผ่านที่คาดเดายาก
+  และไม่ควรบันทึกข้อมูลสำคัญลงในเอกสารหรือระบบควบคุมเวอร์ชัน
+</Callout>
+
+## Access & Usage
+
+เมื่อ Container เริ่มทำงานสำเร็จ สามารถเข้าใช้งานจัดการฐานข้อมูลได้ดังนี้
+
+**URL** `http://localhost:8080` (หรือ IP ของเครื่อง Server ตามด้วย Port 8080)  
+**Username:** `root` หรือ `db_user` (ตามที่ตั้งค่าใน Environment)  
+**Password:** รหัสผ่านที่กำหนดไว้
+
+## Auto Import Data
+
+ฟีเจอร์นี้ช่วยให้ "เตรียมข้อมูลตั้งต้น" หรือ "โครงสร้างตาราง" ได้ทันทีที่รัน Container ครั้งแรก โดยไม่ต้องเข้า phpMyAdmin เพื่อ Import หรือ สร้าง Table
+
+### Project Structure Initial
+
+โฟลเดอร์ชื่อ init_db (หรือชื่ออื่นตามต้องการ) เพื่อเก็บไฟล์ .sql
+
+<FileTree>
+  <FileTree.Folder name="mysql-project" defaultOpen>
+    <FileTree.File name="docker-compose.yml" />
+    <FileTree.Folder name="init_db" defaultOpen>
+      <FileTree.File name="01_create_tables.sql" />
+      <FileTree.File name="02_insert_data.sql" />
+    </FileTree.Folder>
+    <FileTree.Folder name="mysql_data" />
+  </FileTree.Folder>
+</FileTree>
+
+Docker Compose Configuration เพิ่มบรรทัดในส่วน volumes เพื่อเชื่อมโยงโฟลเดอร์ init_db  
+เข้าไปยัง /docker-entrypoint-initdb.d ภายใน Container
+
+```bash filename="docker-compose.yml"
+services:
+  db:
+    volumes:
+      - ./mysql_data:/var/lib/mysql            # เก็บข้อมูลถาวร
+      - ./init_db:/docker-entrypoint-initdb.d  # Auto Import
+```

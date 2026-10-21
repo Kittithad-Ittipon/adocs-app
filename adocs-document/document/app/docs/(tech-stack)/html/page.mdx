@@ -1,0 +1,140 @@
+import { FileTree } from "nextra/components";
+import { Callout, Steps, Tabs } from "nextra/components";
+import { EmbedYoutube } from "@/components/embed-youtube";
+
+# HTML
+
+เอกสารนี้อธิบายขั้นตอนการ Deploy เว็บไซต์ **HTML แบบ Static** โดยใช้ **Docker Compose**  
+เหมาะสำหรับการใช้งานภายในเครือข่าย **LAN** การ Deploy HTML ด้วย Docker จะใช้ **Web Server**  
+เช่น **Nginx** เพื่อให้บริการไฟล์ HTML ผ่านโปรโตคอล HTTP
+
+---
+<EmbedYoutube id="FkRHOe7Ehdg" />
+
+## Project Structure
+
+โครงสร้างไฟล์ของโปรเจกต์ HTML ที่ใช้ร่วมกับ Docker Compose ควรแยกไฟล์เว็บไซต์ออกจากไฟล์กำหนดค่าของ Docker อย่างชัดเจน เพื่อให้ง่ายต่อการดูแลและแก้ไขในอนาคต
+
+<FileTree>
+  <FileTree.Folder name="project" defaultOpen>
+    <FileTree.File name="docker-compose.yml" />
+    <FileTree.Folder name="html" defaultOpen>
+      <FileTree.File name="index.html" />
+      <FileTree.File name="style.css (Optional)" />
+      <FileTree.File name="script.js (Optional)" />
+      <FileTree.File name="__more" />
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+โครงสร้างดังกล่าวแยกหน้าที่ของไฟล์อย่างชัดเจน ไฟล์ `docker-compose.yml`  
+ใช้สำหรับกำหนดการทำงานของ Container โฟลเดอร์ `html` ใช้เก็บไฟล์เว็บไซต์ทั้งหมดที่ Nginx จะนำไปให้บริการผ่านเครือข่าย
+
+## Application Components
+
+### Template Index
+
+```bash filename="index.html"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Index</title>
+</head>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+    *{
+        font-family: "kanit";
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    body{
+        height: 100vh;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    h1{
+        text-align: center;
+        font-size: 100px;
+    }
+</style>
+<body>
+    <h1>Hello World</h1>
+</body>
+</html>
+```
+
+## Docker Compose
+
+<Callout type="info">
+  **หมายเหตุการระบุพอร์ต** เนื่องจากระบบใช้การระบุตัวตนผ่าน **Local DNS**
+  ของแพลตฟอร์ม บริการ Nginx รันบน Port 80 ภายในเครือข่ายโดยตรง โดยไม่ต้องทำการ
+  Map Port (Port Forwarding) ออกมายังภายนอก
+  สามารถตรวจสอบวิธีการตั้งค่าการเปิด Port ของแต่ละภาษาและเฟรมเวิร์กเพิ่มเติม ได้จากเอกสารอ้างอิง  
+  **Official Documentation:** [docs.nginx.com/nginx/admin-guide](https://docs.nginx.com/nginx/admin-guide/web-server/serving-static-content/)
+</Callout>
+
+### Image
+
+ข้อมูล Image nginx โดยสามารถเลือกใช้ Image เวอร์ชันอื่นๆได้
+
+* **Doker Hub:** [hub.docker.com/_/nginx/tags](https://hub.docker.com/_/nginx/tags)
+
+### Upload On Platform
+
+```yaml filename="docker-compose.yml"
+version: '3.8'
+services:
+  web:
+    image: nginx:1.28.2-alpine
+    volumes:
+      - ./html:/usr/share/nginx/html
+    restart: unless-stopped
+    networks:
+      - lan-net
+
+networks:
+  lan-net:
+    external: true
+```
+
+<Callout type="warning">
+  external: true คือการเข้าร่วม Network ชื่อ lan-net ที่ถูกสร้างไว้เเล้ว
+</Callout>
+
+### Full Docker Compose
+
+```yaml filename="docker-compose.yml"
+# ระบุเวอร์ชันของรูปแบบไฟล์ Docker Compose
+version: "3.8"
+
+services:
+  # บริการ Web Server สำหรับเผยแพร่เว็บไซต์ Static HTML
+  web:
+    # เลือกใช้ Nginx เวอร์ชัน alpine ที่มีขนาดเล็กและใช้ทรัพยากรน้อย
+    image: nginx:1.28.2-alpine
+
+    # เชื่อมโยงโฟลเดอร์ html จากเครื่องโฮสต์ไปยังตำแหน่ง Root ของ Nginx
+    volumes:
+      - ./html:/usr/share/nginx/html
+
+    # ตั้งค่าให้ Resart อัตโนมัติและสามรถสั่งหยุดได้
+    restart: unless-stopped
+
+    # เชื่อมต่อคอนเทนเนอร์เข้ากับเครือข่ายที่กำหนด
+    networks:
+      - lan-net
+
+    # เปิดพอร์ต 80 สำหรับการสื่อสารภายในเครือข่าย Docker
+    expose:
+      - "80"
+
+networks:
+  # อ้างอิงเครือข่าย lan-net ที่ถูกสร้างไว้ภายนอก (External Network)
+  lan-net:
+    external: true
+```

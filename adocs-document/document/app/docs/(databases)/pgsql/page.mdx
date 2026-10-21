@@ -1,0 +1,134 @@
+import { FileTree } from "nextra/components";
+import { Callout } from "nextra/components";
+
+# PostgreSQL
+
+เอกสารนี้อธิบายการ Deploy ฐานข้อมูล **PostgreSQL** พร้อมเครื่องมือจัดการ **pgAdmin**
+โดยทำงานร่วมกันภายใต้ Network เดียวกัน เหมาะสำหรับการสร้าง Database Server ส่วนตัว
+หรือเพื่อการทดสอบระบบ
+
+<Callout type="warning">
+  **ข้อควรทราบ** หากแพลตฟอร์มหรือองค์กรของคุณมีบริการ **Central Database** (ฐานข้อมูลกลาง) ให้บริการอยู่แล้ว  
+  **ไม่จำเป็นต้อง Deploy ส่วนนี้** สามารถนำ Credentials (Host, User, Pass) ไปใช้งานกับ Application ได้ทันที
+</Callout>
+
+---
+
+## Project Structure
+
+โครงสร้างไฟล์ `docker-compose.yml` และโฟลเดอร์สำหรับเก็บข้อมูล (Mount Volume) ที่จะถูกสร้างขึ้นอัตโนมัติ
+
+<FileTree>
+  <FileTree.Folder name="postgres-project" defaultOpen>
+    <FileTree.File name="docker-compose.yml" />
+    <FileTree.Folder name="pg_data (auto)" />
+  </FileTree.Folder>
+</FileTree>
+
+### Image
+
+ข้อมูล Image postgres โดยสามารถเลือกใช้ Image เวอร์ชันอื่นๆได้
+
+* **Doker Hub:** [hub.docker.com/_/postgres/tags](https://hub.docker.com/_/postgres/tags)
+
+
+## Docker Compose
+
+การตั้งค่านี้จะสร้าง Container 2 ตัว คือ `db` (PostgreSQL) และ `pgadmin` (Web GUI) โดยเชื่อมต่อกันผ่าน Network ภายใน
+
+```yaml filename="docker-compose.yml"
+version: "3.8"
+
+services:
+  db: # บริการฐานข้อมูล PostgreSQL
+    image: postgres:15-alpine # อิมเมจ PostgreSQL (แนะนำ Alpine เพื่อขนาดที่เล็ก)
+    container_name: postgres-db
+    restart: unless-stopped
+
+    environment: # ค่าการตั้งค่าฐานข้อมูล
+      POSTGRES_USER: db_user # ชื่อผู้ใช้งาน (Superuser)
+      POSTGRES_PASSWORD: user_password # รหัสผ่าน
+      POSTGRES_DB: example_db # ชื่อฐานข้อมูลเริ่มต้น
+      TZ: Asia/Bangkok # เขตเวลา
+
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data # จุด Mount ข้อมูลถาวรของ Postgres
+
+    networks:
+      - lan-net
+
+  pgadmin: # เครื่องมือจัดการฐานข้อมูล (GUI)
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    restart: unless-stopped
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com # อีเมลสำหรับล็อกอินเข้า pgAdmin
+      PGADMIN_DEFAULT_PASSWORD: root # รหัสผ่านสำหรับล็อกอินเข้า pgAdmin
+
+    ports:
+      - "5050:80" # พอร์ตสำหรับเข้าใช้งาน (เข้าผ่าน Port 5050)
+
+    networks:
+      - lan-net
+
+    depends_on:
+      - db
+
+networks:
+  lan-net:
+    external: true # ใช้เครือข่ายที่สร้างไว้แล้ว
+```
+
+<Callout type="info">
+  ในระบบจริง ควรเปลี่ยนค่า POSTGRES_PASSWORD และ PGADMIN_DEFAULT_PASSWORD
+  ให้เป็นรหัสผ่านที่คาดเดายาก และไม่ควรบันทึกข้อมูลสำคัญลงในเอกสาร
+</Callout>
+
+## Access & Usage
+
+เมื่อ Container เริ่มทำงานสำเร็จ สามารถเข้าใช้งานจัดการฐานข้อมูลได้ดังนี้
+
+**URL** http://localhost:5050  
+**Email:** admin@admin.com (สำหรับเข้าหน้า Login ของ pgAdmin)  
+**Password:** root
+
+วิธีการเชื่อมต่อ Server ใน pgAdmin
+เนื่องจาก pgAdmin จะแยกส่วนการจัดการ User กับการเชื่อมต่อ Server เมื่อล็อกอินเข้ามาแล้วต้องทำการ Add New Server:
+
+- คลิกขวาที่ Servers > Register > Server...
+- แท็บ General ตั้งชื่อตามต้องการ (เช่น My Postgres)
+- แท็บ Connection
+  - Host name/address: db (ชื่อ Service ใน docker-compose)
+  - Username: db_user
+  - Password: user_password
+  - กด Save
+
+## Auto Import Data
+
+ฟีเจอร์นี้ช่วยให้ "เตรียมข้อมูลตั้งต้น" หรือ "โครงสร้างตาราง" ได้ทันทีที่รัน Container ครั้งแรก โดยระบบจะรันไฟล์ .sql ในโฟลเดอร์ /docker-entrypoint-initdb.d โดยอัตโนมัติ
+
+### Project Structure Initial
+โฟลเดอร์ชื่อ init_db (หรือชื่ออื่นตามต้องการ) เพื่อเก็บไฟล์ .sql
+
+<FileTree>
+  <FileTree.Folder name="postgres-project" defaultOpen>
+    <FileTree.File name="docker-compose.yml" />
+    <FileTree.Folder name="init_db" defaultOpen>
+      <FileTree.File name="01_create_schema.sql" />
+      <FileTree.File name="02_insert_data.sql" />
+    </FileTree.Folder>
+    <FileTree.Folder name="pg_data" />
+  </FileTree.Folder>
+</FileTree>
+
+Docker Compose Configuration เพิ่มบรรทัดในส่วน volumes เพื่อเชื่อมโยงโฟลเดอร์ init_db  
+เข้าไปยัง /docker-entrypoint-initdb.d ภายใน Container
+
+```bash filename="docker-compose.yml"
+services:
+  db:
+    volumes:
+      - ./mysql_data:/var/lib/mysql            # เก็บข้อมูลถาวร
+      - ./init_db:/docker-entrypoint-initdb.d  # Auto Import
+```

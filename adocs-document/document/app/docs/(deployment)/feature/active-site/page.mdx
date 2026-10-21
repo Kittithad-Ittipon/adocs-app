@@ -1,0 +1,44 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+
+# Active Site
+
+**Active Site** คือหน้าสำคัญของ Platform ที่ใช้สำหรับแสดงสถานะของระบบหรือเว็บไซต์ต่าง ๆ  
+ที่ถูก Deploy และกำลังทำงานอยู่บน Server ผ่านระบบ Container (เช่น Docker)
+
+หน้านี้ถูกออกแบบมาเพื่อให้ผู้ใช้งานสามารถ **ตรวจสอบสถานะการทำงานของระบบได้แบบ Real-time**  
+โดยไม่จำเป็นต้องเข้าถึง Server โดยตรงผ่าน Command Line
+
+---
+
+## Purpose of Active Site
+
+หน้า Active Site มีวัตถุประสงค์หลักดังนี้
+
+- แสดงรายการเว็บไซต์หรือแอปพลิเคชันที่ถูก Deploy แล้ว
+- ตรวจสอบสถานะการทำงานของแต่ละ Container (เช่น Running / Stopped)
+- ช่วยให้ผู้ดูแลระบบและผู้ใช้งานสามารถติดตามระบบได้จาก Web UI
+- ลดความซับซ้อนในการบริหารจัดการระบบภายในเครือข่าย (LAN)
+
+---
+
+## Active Site Dashboard Overview
+
+<div className="mt-7">
+  <Zoom>
+    <img
+      src="/img/adocs-containers.png"
+      alt="Active Site"
+      style={{ width: "100%", height: "auto", borderRadius: "15px"}}
+    />
+  </Zoom>
+</div>
+
+จากภาพตัวอย่างด้านบน แสดงหน้า Active Site Dashboard ซึ่งรวบรวมข้อมูลของระบบที่ถูก Deploy ไว้ทั้งหมดในแพลตฟอร์มข้อมูลที่แสดงบนหน้านี้ประกอบด้วย
+- Container Name
+- Domain
+- type
+- Owner
+- Updated Date
+- Status
+---
