@@ -1,5 +1,6 @@
 # 1. Standard Library Imports (Python built-in modules)
 import os
+import re
 import secrets
 import shutil
 import subprocess
@@ -64,6 +65,16 @@ mail = Mail(app)
 # Nginx Proxy Manager (NPM) Token Caching Variables
 NPM_TOKEN = None
 NPM_EXPIRED = 0
+
+# Public Domain for Proxy Hosts Added by Admins (deploys use the LAN domain .addp.site)
+PUBLIC_DOMAIN = "adocs.site"
+SUBDOMAIN_PATTERN = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
+
+# Maximum Domains (LAN and public together) per Container
+MAX_DOMAINS_PER_CONTAINER = int(os.getenv("MAX_DOMAINS_PER_CONTAINER") or 3)
+
+# NPM Proxy Hosts Cache for the Public Containers Page
+PROXY_CACHE = {"hosts": None, "expires": 0}
 
 # Database Connection Pool Setup
 POOL = PooledDB(
@@ -161,6 +172,11 @@ def nginx_update_proxy(npm_id, domain, container_name, port, protocol):
     }
 
     try:
+        current = requests.get(url, headers=headers, verify=False, timeout=30)
+        if current.status_code == 200 and current.json().get("domain_names"):
+            # Keep the domains admins added or removed on the deploy proxy host
+            payload["domain_names"] = current.json()["domain_names"]
+
         response = requests.put(
             url, json=payload, headers=headers, verify=False, timeout=30)
         if response.status_code == 200:
@@ -170,6 +186,121 @@ def nginx_update_proxy(npm_id, domain, container_name, port, protocol):
             return False, f"NPM Update Failed: {error_msg}"
     except Exception as e:
         return False, f"Connection Error: {str(e)}"
+
+# Function to send an authenticated request to the NPM API
+def npm_request(method, path, **kwargs):
+    token = get_npm_token()
+    if not token:
+        raise RuntimeError("NPM Auth Failed")
+
+    url = f"{os.getenv('NPM_URL') or 'http://nginx-proxy-manager:81'}/api{path}"
+    return requests.request(method, url, headers={"Authorization": f"Bearer {token}"}, verify=False, timeout=30, **kwargs)
+
+# Function to read the error message from a failed NPM response
+def npm_error(response):
+    try:
+        return response.json().get("error", {}).get("message", "Unknown Error")
+    except ValueError:
+        return f"HTTP {response.status_code}"
+
+# Function to fetch all NPM proxy hosts, optionally from a short cache
+def npm_proxy_hosts(use_cache=False):
+    now = time.time()
+    if use_cache and PROXY_CACHE["hosts"] is not None and now < PROXY_CACHE["expires"]:
+        return PROXY_CACHE["hosts"]
+
+    response = npm_request("GET", "/nginx/proxy-hosts")
+    if response.status_code != 200:
+        raise RuntimeError(f"Fetch Proxy Hosts Failed: {npm_error(response)}")
+
+    PROXY_CACHE.update(hosts=response.json(), expires=now + 15)
+    return PROXY_CACHE["hosts"]
+
+# Function to fetch one NPM proxy host, only when it forwards to the given container
+def container_proxy_host(container_name, proxy_id):
+    response = npm_request("GET", f"/nginx/proxy-hosts/{proxy_id}")
+    if response.status_code != 200:
+        return None
+    host = response.json()
+    return host if host.get("forward_host") == container_name else None
+
+# Function to attach the NPM proxy hosts forwarding to each container (matched by forward_host)
+def attach_proxies(containers, use_cache=False):
+    try:
+        hosts = npm_proxy_hosts(use_cache)
+    except Exception as e:
+        print("NPM Proxy Hosts Error:", e)
+        hosts = None
+
+    for container in containers:
+        npm_id = container.get("npm_id")
+        if hosts is None:
+            # NPM is unreachable, fall back to the deploy domain stored in the database
+            matched = [{
+                "id": npm_id, "domain_names": [container["domain"]], "forward_scheme": container.get("forward_scheme"),
+                "forward_host": container["container_name"], "forward_port": container.get("port_internal"),
+                "enabled": True, "certificate_id": os.getenv("NPM_CERT_ID"),
+            }] if container.get("domain") else []
+        else:
+            matched = [host for host in hosts if host.get("forward_host") == container["container_name"]]
+
+        proxies = [{
+            "id": host.get("id"),
+            "domain_names": host.get("domain_names") or [],
+            "forward_scheme": host.get("forward_scheme"),
+            "forward_host": host.get("forward_host"),
+            "forward_port": host.get("forward_port"),
+            "enabled": bool(host.get("enabled")),
+            "ssl": bool(host.get("certificate_id")),
+            "primary": npm_id is not None and host.get("id") == npm_id,
+        } for host in matched]
+        container["proxies"] = sorted(proxies, key=lambda proxy: (not proxy["primary"], (proxy["domain_names"] or [""])[0]))
+        container["proxies_synced"] = hosts is not None
+    return containers
+
+# Function to find the NPM certificate for a public domain (NPM_PUBLIC_CERT_ID or a certificate covering *.adocs.site)
+def public_certificate_id(domain):
+    configured = os.getenv("NPM_PUBLIC_CERT_ID")
+    if configured:
+        return int(configured)
+
+    response = npm_request("GET", "/nginx/certificates")
+    if response.status_code != 200:
+        raise RuntimeError(f"Fetch Certificates Failed: {npm_error(response)}")
+
+    for certificate in response.json():
+        names = certificate.get("domain_names") or []
+        if domain in names or f"*.{PUBLIC_DOMAIN}" in names:
+            return certificate["id"]
+    return 0
+
+# Function to add a public NPM proxy host for a container
+def nginx_add_public_proxy(domain, container_name, port, protocol):
+    certificate_id = public_certificate_id(domain)
+    payload = {
+        "domain_names": [domain],
+        "forward_scheme": protocol,
+        "forward_host": container_name,
+        "forward_port": port,
+        "access_list_id": 0,
+        "certificate_id": certificate_id,
+        "ssl_forced": bool(certificate_id),
+        "caching_enabled": False,
+        "block_exploits": True,
+        "advanced_config": "",
+        "meta": {},
+        "allow_websocket_upgrade": True,
+        "http2_support": bool(certificate_id),
+        "hsts_enabled": bool(certificate_id),
+        "hsts_subdomains": False
+    }
+
+    response = npm_request("POST", "/nginx/proxy-hosts", json=payload)
+    if response.status_code != 201:
+        return False, npm_error(response)
+
+    PROXY_CACHE["expires"] = 0
+    return True, response.json()
 
 # Function to unzip uploaded file
 def unzip_here(zip_path, target_dir):
@@ -611,7 +742,7 @@ def forgot_repassword():
         if conn:
             conn.close()
 
-# API Endpoint to Fetch Container Data for the Logged-In User with Role-Based Access Control
+# API Endpoint to Fetch Container Data and NPM Proxy Hosts, Admins See Every Container and Users Only Their Own
 @app.route("/api/containers", methods=["GET"])
 @jwt_required()
 @limiter.limit("20 per minute")
@@ -623,13 +754,18 @@ def container_data():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute(
-            "SELECT * FROM containers WHERE owner = %s", (username,))
+        if data["role"] == "admin":
+            cursor.execute("SELECT * FROM containers ORDER BY owner, container_name")
+        else:
+            cursor.execute(
+                "SELECT * FROM containers WHERE owner = %s", (username,))
         containers_data = cursor.fetchall()
 
         if not containers_data:
             return jsonify([]), 200
 
+        for container in attach_proxies(containers_data):
+            container["max_domains"] = MAX_DOMAINS_PER_CONTAINER
         return jsonify(containers_data), 200
 
     except Exception as e:
@@ -832,7 +968,11 @@ def active_site():
 
         if not system_data:
             return jsonify([]), 200
-        
+
+        # Expose only the domain names of enabled proxy hosts on this public endpoint
+        for container in attach_proxies(system_data, use_cache=True):
+            container["domains"] = [domain for proxy in container.pop("proxies") if proxy["enabled"] for domain in proxy["domain_names"]]
+
         return jsonify(system_data) , 200
 
     except Exception as e:
@@ -861,6 +1001,10 @@ def port_update(projectName):
 
         cursor.execute("SELECT * FROM containers WHERE container_name = %s", (container_name,))
         user_data = cursor.fetchone()
+        if not user_data or (data_token["role"] != "admin" and user_data["owner"] != username):
+            return jsonify({"error": "Container Not Found or Permission Denied"}), 404
+
+        owner = user_data["owner"]
         domain = user_data["domain"]
         port_internal = user_data["port_internal"]
         forward_scheme = user_data["forward_scheme"]
@@ -869,9 +1013,9 @@ def port_update(projectName):
         if not domain:
             try:
                 if port == "" or port is None:
-                    cursor.execute("UPDATE containers SET port_internal = NULL, publish = %s WHERE container_name = %s AND owner = %s", (pub, container_name, username))
+                    cursor.execute("UPDATE containers SET port_internal = NULL, publish = %s WHERE container_name = %s AND owner = %s", (pub, container_name, owner))
                 else:
-                    cursor.execute("UPDATE containers SET port_internal = %s, publish = %s WHERE container_name = %s AND owner = %s", (port, pub, container_name, username))
+                    cursor.execute("UPDATE containers SET port_internal = %s, publish = %s WHERE container_name = %s AND owner = %s", (port, pub, container_name, owner))
                 conn.commit()
                 return jsonify({"message": "Update Port Success"}) , 201
             except Exception as e:
@@ -943,18 +1087,23 @@ def del_stack(projectName):
         if not user_data:
             return jsonify({"error": "Users Data Not Found"}), 400
 
-        cursor.execute("SELECT * FROM containers WHERE project_path = %s AND owner = %s", (project_path,username))
+        # Admins can delete any stack, users only their own
+        if data_token["role"] == "admin":
+            cursor.execute("SELECT * FROM containers WHERE project_path = %s", (project_path,))
+        else:
+            cursor.execute("SELECT * FROM containers WHERE project_path = %s AND owner = %s", (project_path,username))
         container_user_data = cursor.fetchall()
         if not container_user_data:
             return jsonify({"error": "No Stack Found"}), 404
 
-        cursor.execute("SELECT * FROM containers WHERE project_path = %s AND owner = %s AND status = %s", (project_path,username,"pending"))
+        owner = container_user_data[0]["owner"]
+        cursor.execute("SELECT * FROM containers WHERE project_path = %s AND owner = %s AND status = %s", (project_path,owner,"pending"))
         pending_data = cursor.fetchall()
         if pending_data:
             return jsonify({"error": "This Stack is already being deleted. Please wait."}), 429
-        
-        folder_name = os.path.basename(project_path) 
-        docker_project_name = f"{username}_{folder_name}"
+
+        folder_name = os.path.basename(project_path)
+        docker_project_name = f"{owner}_{folder_name}"
 
         for container in container_user_data:
             container_list.append(container["container_name"])
@@ -969,13 +1118,13 @@ def del_stack(projectName):
             f"[CONTAINER NAME]:\n  -PENDING- \n"
             )
         
-        cursor.execute("UPDATE containers SET status = %s WHERE project_path = %s AND owner = %s", ("pending", project_path, username))
-        cursor.execute("INSERT INTO activity_logs (user_id, username, container_name, action, status, details) VALUES (%s, %s, %s, %s, %s, %s)", (user_id, username, full_c_name, "DELETE", "PENDING", full_log))      
+        cursor.execute("UPDATE containers SET status = %s WHERE project_path = %s AND owner = %s", ("pending", project_path, owner))
+        cursor.execute("INSERT INTO activity_logs (user_id, username, container_name, action, status, details) VALUES (%s, %s, %s, %s, %s, %s)", (user_id, username, full_c_name, "DELETE", "PENDING", full_log))
         conn.commit()
         log_id = cursor.lastrowid
 
         from tasks import docker_delstack
-        task = docker_delstack.delay(project_path, docker_project_name, folder_name, username, user_id, container_list, container_value, container_user_data, log_id)
+        task = docker_delstack.delay(project_path, docker_project_name, folder_name, owner, user_id, container_list, container_value, container_user_data, log_id)
 
         return jsonify({"message": "Stack deleted successfully", "taskID": task.id}), 200
     
@@ -1006,27 +1155,32 @@ def status_container(projectName):
         if not project_path or not action:
             return jsonify({"error": "Missing stack path or status"}), 400
 
+        if action not in ("running", "stopped"):
+            return jsonify({"error": "Invalid status action"}), 400
+
         conn = get_db_connection()
         cursor = conn.cursor()
 
+        # Admins can control any stack, users only their own
+        if data_token["role"] == "admin":
+            cursor.execute("SELECT * FROM containers WHERE project_path = %s", (project_path,))
+        else:
+            cursor.execute("SELECT * FROM containers WHERE project_path = %s AND owner = %s",(project_path, username))
+        containers = cursor.fetchall()
+
+        if not containers:
+            return jsonify({"error": "Stack Not Found or Permission Denied"}), 404
+
+        owner = containers[0]["owner"]
         folder_name = os.path.basename(project_path)
-        docker_project_name = f"{username}_{folder_name}"
+        docker_project_name = f"{owner}_{folder_name}"
 
         if action == "running":
             cmd = ["docker", "compose", "-p", docker_project_name, "stop"]
             result_action = "stopped"
-        elif action == "stopped":
+        else:
             cmd = ["docker", "compose", "-p", docker_project_name, "up", "-d"]
             result_action = "running"
-        else:
-            return jsonify({"error": "Invalid status action"}), 400
-
-        cursor.execute("SELECT * FROM containers WHERE project_path = %s AND owner = %s",(project_path, username))
-        containers = cursor.fetchall()
-        
-        if not containers:
-            return jsonify({"error": "Stack Not Found or Permission Denied"}), 404
-
 
         cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
         user_data = cursor.fetchone()
@@ -1040,14 +1194,14 @@ def status_container(projectName):
         )
         full_c_name = f"STACK : {folder_name}"
 
-        cursor.execute("UPDATE containers SET status = %s WHERE project_path = %s AND owner = %s",("pending", project_path, username))
+        cursor.execute("UPDATE containers SET status = %s WHERE project_path = %s AND owner = %s",("pending", project_path, owner))
         cursor.execute("INSERT INTO activity_logs (user_id, username, container_name, action, status, details) VALUES (%s, %s, %s, %s, %s, %s)", (user_id, username, full_c_name, result_action.upper(), "PENDING", log_content))
         log_id = cursor.lastrowid
 
         conn.commit()
 
         from tasks import docker_start_stop
-        task = docker_start_stop.delay(result_action, folder_name, project_path, docker_project_name, cmd, username, log_id)
+        task = docker_start_stop.delay(result_action, folder_name, project_path, docker_project_name, cmd, owner, log_id)
 
         return jsonify({"message": f"Container {result_action} Pending", "taskID": task.id }), 200
 
@@ -1056,6 +1210,128 @@ def status_container(projectName):
             conn.rollback()
         print(f"Status Change Error: {e}")
         return jsonify({"error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+# API Endpoint for Adding a Public Domain (*.adocs.site) to a Container, Admin Only
+# With proxyId the domain joins that existing proxy host (e.g. the deploy host bound to npm_id), otherwise a new proxy host is created
+@app.route("/api/containers/<projectName>/proxies", methods=["POST"])
+@jwt_required()
+@limiter.limit("10 per minute")
+def add_proxy(projectName):
+    conn = None
+    try:
+        if get_jwt()["role"] != "admin":
+            return jsonify({"error": "Permission Denied Admin Only"}), 403
+
+        data = request.get_json(silent=True) or {}
+        subdomain = str(data.get("subdomain") or "").strip().lower()
+        proxy_id = data.get("proxyId")
+        protocol = data.get("protocol")
+        port = str(data.get("port") or "")
+
+        if not SUBDOMAIN_PATTERN.match(subdomain):
+            return jsonify({"error": "Subdomain may only contain lowercase letters, numbers and hyphens"}), 400
+        if proxy_id is not None and (isinstance(proxy_id, bool) or not isinstance(proxy_id, int)):
+            return jsonify({"error": "Invalid proxy host"}), 400
+        # Without proxyId, port or protocol the domain joins the deploy proxy host (npm_id)
+        new_host = proxy_id is None and (port != "" or protocol is not None)
+        if new_host and protocol not in ("http", "https"):
+            return jsonify({"error": "Protocol must be http or https"}), 400
+        if new_host and (not (port.isascii() and port.isdigit()) or not 0 < int(port) < 65536):
+            return jsonify({"error": "Port must be between 1 and 65535"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM containers WHERE container_name = %s", (projectName,))
+        container = cursor.fetchone()
+        if not container:
+            return jsonify({"error": "Container Not Found"}), 404
+
+        if proxy_id is None and not new_host:
+            proxy_id = container["npm_id"]
+            if not proxy_id:
+                return jsonify({"error": "This container has no deploy proxy host"}), 400
+
+        domain = f"{subdomain}.{PUBLIC_DOMAIN}"
+        hosts = npm_proxy_hosts()
+        if any(domain in (host.get("domain_names") or []) for host in hosts):
+            return jsonify({"error": f"Domain '{domain}' is already in use"}), 409
+
+        used = sum(len(host.get("domain_names") or []) for host in hosts if host.get("forward_host") == container["container_name"])
+        if used >= MAX_DOMAINS_PER_CONTAINER:
+            return jsonify({"error": f"Domain limit reached ({used}/{MAX_DOMAINS_PER_CONTAINER})"}), 400
+
+        if proxy_id is not None:
+            host = container_proxy_host(container["container_name"], proxy_id)
+            if not host:
+                return jsonify({"error": "Proxy Host Not Found for This Container"}), 404
+
+            response = npm_request("PUT", f"/nginx/proxy-hosts/{proxy_id}", json={"domain_names": (host.get("domain_names") or []) + [domain]})
+            if response.status_code != 200:
+                return jsonify({"error": f"NPM Update Failed: {npm_error(response)}"}), 502
+
+            PROXY_CACHE["expires"] = 0
+            return jsonify({"message": f"Domain '{domain}' Added"}), 201
+
+        status, result = nginx_add_public_proxy(domain, container["container_name"], int(port), protocol)
+        if not status:
+            return jsonify({"error": f"NPM Create Failed: {result}"}), 502
+
+        if not result.get("certificate_id"):
+            return jsonify({"message": f"Proxy Host '{domain}' Created Without SSL (no *.{PUBLIC_DOMAIN} certificate found in NPM)"}), 201
+        return jsonify({"message": f"Proxy Host '{domain}' Created"}), 201
+
+    except Exception as e:
+        print("Add Proxy Error:", e)
+        return jsonify({"error": "Failed to add proxy host"}), 500
+    finally:
+        if conn:
+            conn.close()
+
+# API Endpoint for Removing a Domain (LAN or public) from a Container's Proxy Host, Admin Only
+# The deploy proxy host must keep at least one domain, any other proxy host left without domains is deleted
+@app.route("/api/containers/<projectName>/proxies/<int:proxyId>/domains/<domain>", methods=["DELETE"])
+@jwt_required()
+@limiter.limit("10 per minute")
+def remove_proxy_domain(projectName, proxyId, domain):
+    conn = None
+    try:
+        if get_jwt()["role"] != "admin":
+            return jsonify({"error": "Permission Denied Admin Only"}), 403
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM containers WHERE container_name = %s", (projectName,))
+        container = cursor.fetchone()
+        if not container:
+            return jsonify({"error": "Container Not Found"}), 404
+
+        host = container_proxy_host(container["container_name"], proxyId)
+        if not host or domain not in (host.get("domain_names") or []):
+            return jsonify({"error": "Domain Not Found on This Proxy Host"}), 404
+
+        remaining = [name for name in host["domain_names"] if name != domain]
+        if remaining:
+            response = npm_request("PUT", f"/nginx/proxy-hosts/{proxyId}", json={"domain_names": remaining})
+            if response.status_code != 200:
+                return jsonify({"error": f"NPM Update Failed: {npm_error(response)}"}), 502
+            message = f"Domain '{domain}' Removed"
+        elif container["npm_id"] == proxyId:
+            return jsonify({"error": "The deploy proxy host must keep at least one domain"}), 400
+        else:
+            response = npm_request("DELETE", f"/nginx/proxy-hosts/{proxyId}")
+            if response.status_code not in (200, 204):
+                return jsonify({"error": f"NPM Delete Failed: {npm_error(response)}"}), 502
+            message = f"Domain '{domain}' Removed and Its Empty Proxy Host Deleted"
+
+        PROXY_CACHE["expires"] = 0
+        return jsonify({"message": message}), 200
+
+    except Exception as e:
+        print("Remove Proxy Domain Error:", e)
+        return jsonify({"error": "Failed to remove domain"}), 500
     finally:
         if conn:
             conn.close()

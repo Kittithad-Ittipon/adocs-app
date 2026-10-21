@@ -26,15 +26,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Invalid container data returned by the service." }, { status: 502 });
     }
     const transformData = flaskData
-      .filter((item: Record<string, unknown>) => typeof item.domain === "string" && item.domain.trim() !== "")
       .map((item: Record<string, unknown>) => ({
         containerName: item.container_name,
-        domain: item.domain,
+        domains: Array.isArray(item.domains) ? item.domains.filter((domain): domain is string => typeof domain === "string" && domain.trim() !== "") : [],
         image: item.type,
         owner: item.owner,
         upDateTime: item.updated_at,
         status: item.status,
-      }));
+      }))
+      .filter((item) => item.domains.length > 0);
     return NextResponse.json(transformData, { status: flaskRes.status });
   } catch {
     return NextResponse.json({ error: "Server Error" }, { status: 500 });

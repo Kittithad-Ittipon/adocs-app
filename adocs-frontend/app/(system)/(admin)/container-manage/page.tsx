@@ -1,6 +1,6 @@
 import ComponentContainersManage from "@/components/system/users/ContainersManage";
 
 const ContainerManage = () => {
-  return <ComponentContainersManage />;
+  return <ComponentContainersManage isAdmin />;
 };
 export default ContainerManage;

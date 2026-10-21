@@ -137,6 +137,11 @@ def nginx_update_proxy(npm_id, domain, container_name, port, protocol):
     }
 
     try:
+        current = requests.get(url, headers=headers, verify=False, timeout=30)
+        if current.status_code == 200 and current.json().get("domain_names"):
+            # Keep the domains admins added or removed on the deploy proxy host
+            payload["domain_names"] = current.json()["domain_names"]
+
         response = requests.put(url, json=payload, headers=headers, verify=False, timeout=30)
         if response.status_code == 200:
             return True, "Proxy Host Updated Successfully"
@@ -170,6 +175,26 @@ def nginx_delete_proxy(npm_id):
             return False, f"NPM Delete Failed: {error_msg}"
     except Exception as e:
         return False, f"Connection Error: {str(e)}"
+
+# NPM API Functions List proxy hosts forwarding to the given containers (deploy domains and public domains added by admins)
+def nginx_container_proxies(container_names):
+    token = get_npm_token()
+    if not token:
+        return []
+
+    url = f"{os.getenv('NPM_URL') or 'http://nginx-proxy-manager:81'}/api/nginx/proxy-hosts"
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    try:
+        response = requests.get(url, headers=headers, verify=False, timeout=30)
+        if response.status_code != 200:
+            return []
+        return [host for host in response.json() if host.get("forward_host") in container_names]
+    except Exception as e:
+        print(f"NPM List Proxy Hosts Error: {e}")
+        return []
 
 # Run Docker Compose Project with subprocess and capture logs
 def run_docker_project(project_path, docker_project_name, action):
@@ -350,6 +375,13 @@ def docker_delstack(project_path, docker_project_name, folder_name, username, us
                 status , msg_npm = nginx_delete_proxy(container['npm_id'])
             npm_logs.append(f"{container['domain']}: {msg_npm}")
 
+        # Remove public proxy hosts added by admins so they do not outlive the stack
+        deploy_ids = {container['npm_id'] for container in container_user_data if container['npm_id']}
+        for host in nginx_container_proxies(set(container_list)):
+            if host['id'] not in deploy_ids:
+                status , msg_extra = nginx_delete_proxy(host['id'])
+                npm_logs.append(f"{', '.join(host.get('domain_names') or [])}: {msg_extra}")
+
         if project_path and os.path.exists(project_path):
             try:
                 cmd_del = ["docker", "compose", "-p", docker_project_name, "down", "--remove-orphans"]
@@ -420,6 +452,14 @@ def docker_deluser(username, container_user_data, db_name, all_docker_logs, id_u
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        # Remove public proxy hosts added by admins so they do not outlive the account
+        deploy_ids = {container['npm_id'] for container in container_user_data if container['npm_id']}
+        for host in nginx_container_proxies({container['container_name'] for container in container_user_data}):
+            if host['id'] not in deploy_ids:
+                status, msg_extra = nginx_delete_proxy(host['id'])
+                all_docker_logs.append(f"[NPM]:\n   {', '.join(host.get('domain_names') or [])}: {msg_extra}\n")
+
         for container in container_user_data:
             c_name = container['container_name']
             project_path = container['project_path']

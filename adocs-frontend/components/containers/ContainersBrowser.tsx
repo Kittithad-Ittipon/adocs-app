@@ -1,6 +1,6 @@
 "use client";
 import RecordStatus from "@/components/system/shared/RecordStatus";
-import DomainLink from "@/components/system/shared/DomainLink";
+import DomainList from "@/components/system/shared/DomainList";
 
 
 import Reveal from "@/components/Reveal";
@@ -20,7 +20,7 @@ import { toast } from "sonner";
 
 type Container = {
   containerName: string;
-  domain?: string | null;
+  domains: string[];
   image: string;
   owner: string;
   upDateTime: string;
@@ -60,7 +60,7 @@ function ContainerTable({ containers }: { containers: Container[] }) {
                   <span className="min-w-0 flex-1 truncate text-xs font-normal" title={container.containerName}>{container.containerName || "-"}</span>
                 </div>
               </TableCell>
-              <TableCell className="px-3 lg:px-4 [&_a]:max-w-full [&_a>span]:min-w-0"><DomainLink domain={container.domain} /></TableCell>
+              <TableCell className="px-3 lg:px-4 [&_a]:max-w-full [&_a>span]:min-w-0"><DomainList domains={container.domains} title={container.containerName} /></TableCell>
               <TableCell className="px-3 lg:px-4"><span className="inline-block max-w-full truncate rounded-md border bg-muted/40 px-2 py-1 font-mono text-xs text-muted-foreground" title={container.image}>{container.image || "-"}</span></TableCell>
               <TableCell className="px-3 lg:px-4">
                 <div className="flex min-w-0 items-center gap-2"><span className="hidden size-7 shrink-0 lg:flex items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground" aria-hidden="true">{container.owner?.slice(0, 2).toUpperCase() || <User className="size-3" />}</span><span className="min-w-0 flex-1 truncate text-sm" title={container.owner}>{container.owner || "-"}</span></div>
@@ -78,7 +78,7 @@ function ContainerCards({ containers }: { containers: Container[] }) {
   return (
     <div className="grid items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {containers.map((container, index) => {
-        const domain = container.domain?.trim();
+        const multiple = container.domains.length > 1;
         return (
           <Reveal key={container.containerName} className="h-full min-w-0" delay={(index % 3) * 0.04} liftOnHover>
             <Card className="group h-full gap-5 overflow-hidden rounded-2xl border-border/80 py-5 shadow-none motion-safe:transition-[border-color,box-shadow] motion-safe:duration-300 hover:border-sky-500/30 hover:shadow-md">
@@ -91,8 +91,8 @@ function ContainerCards({ containers }: { containers: Container[] }) {
               </CardHeader>
               <CardContent className="flex flex-1 flex-col gap-5 px-5">
                 <div className="min-w-0 rounded-xl border bg-muted/30 p-3">
-                  <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">{domain && <Globe className="size-3.5" aria-hidden="true" />}Domain</p>
-                  <div className="min-w-0 text-sm [&_a]:max-w-full [&_a>span]:min-w-0"><DomainLink domain={domain} /></div>
+                  <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground"><Globe className="size-3.5" aria-hidden="true" />{multiple ? "Domains" : "Domain"}</p>
+                  <div className="min-w-0 text-sm [&_a]:max-w-full [&_a>span]:min-w-0"><DomainList domains={container.domains} title={container.containerName} /></div>
                 </div>
                 <dl className="grid min-w-0 grid-cols-2 gap-4">
                   <div className="min-w-0">
@@ -164,7 +164,7 @@ export default function ContainersBrowser() {
     setReload((value) => value + 1);
   }
   const query = search.trim().toLowerCase();
-  const filtered = containers.filter((container) => container.owner.toLowerCase().includes(query) || (container.domain ?? "").toLowerCase().includes(query));
+  const filtered = containers.filter((container) => container.owner.toLowerCase().includes(query) || container.domains.some((domain) => domain.toLowerCase().includes(query)));
 
   return (
     <main className="min-h-[70dvh] w-full max-w-7xl px-6 py-10 md:px-10">

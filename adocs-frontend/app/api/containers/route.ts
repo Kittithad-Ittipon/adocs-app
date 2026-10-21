@@ -2,6 +2,17 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { uploadsSchema } from "@/lib/validation/upload";
 
+const toProxy = (proxy: Record<string, unknown>) => ({
+  id: proxy.id,
+  domains: Array.isArray(proxy.domain_names) ? proxy.domain_names : [],
+  forwardScheme: proxy.forward_scheme,
+  forwardHost: proxy.forward_host,
+  forwardPort: proxy.forward_port,
+  enabled: proxy.enabled,
+  ssl: proxy.ssl,
+  primary: proxy.primary,
+});
+
 export async function GET() {
   try {
     const token = (await cookies()).get("token");
@@ -40,6 +51,10 @@ export async function GET() {
       port: item.port_internal,
       projectPath: item.project_path,
       publish: item.publish,
+      owner: item.owner,
+      proxies: Array.isArray(item.proxies) ? item.proxies.map(toProxy) : [],
+      proxiesSynced: item.proxies_synced !== false,
+      maxDomains: item.max_domains ?? 3,
     }));
     return NextResponse.json(transformData, { status: flaskRes.status });
   } catch {
