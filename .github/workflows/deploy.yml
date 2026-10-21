@@ -3,7 +3,7 @@ name: Build, Push & Deploy ADOCS App
 on:
   push:
     branches:
-      - mainx
+      - main
 
 env:
   BACKEND_PATH: /home/admin/docker-system-container/docker-app/adocs-flask
