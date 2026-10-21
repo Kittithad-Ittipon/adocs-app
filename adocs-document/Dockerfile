@@ -2,7 +2,8 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-RUN corepack enable
+# pnpm 10 matches the lockfile; newer pnpm fails on the build scripts ignored in pnpm-workspace.yaml
+RUN npm install -g pnpm@10
 
 COPY document/package.json document/pnpm-lock.yaml document/pnpm-workspace.yaml ./
 
